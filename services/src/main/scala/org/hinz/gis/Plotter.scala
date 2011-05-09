@@ -12,10 +12,6 @@ import java.awt.Color
 import java.util.Date
 
 
-case class LatLon(lat:Double,lon:Double) {
-  def toPoint2D = new Point2D.Double(lon,lat)
-}
-
 abstract class Renderer {
   def render(g:Graphics2D, transform: AffineTransform, parent: Panel):Unit
 }
@@ -103,7 +99,7 @@ object Predictor {
 
 object HelloWorld extends SimpleSwingApplication {
 
-  val db = "/Users/ahinz/src/hobby/workhorse/devdb.db"
+  val db = "devdb.db"
     
   val ld = new RouteLoader(db)
 

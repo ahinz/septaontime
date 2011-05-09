@@ -1,5 +1,11 @@
 package org.hinz.septa
 
+import java.awt.geom.Point2D
+
+case class LatLon(lat:Double,lon:Double) {
+	def toPoint2D = new Point2D.Double(lon,lat)
+}
+
 object RouteProcessor {
   
   def fudgeLat = 1.0/3600.0

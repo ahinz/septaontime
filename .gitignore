@@ -1,3 +1,5 @@
+*.db
+route.url
 .DS_Store
 target/
 lib_managed/
