@@ -6,9 +6,9 @@ class SeptaOnTime(info:ProjectInfo) extends ParentProject(info) {
     lazy val server = project("server","server", new Server(_), core)
     lazy val router = project("router","router", new Router(_), core)
     
-    class Core(info: ProjectInfo) extends ParentProject(info) with Deps
-    class Server(info: ProjectInfo) extends ParentProject(info) with Deps
-    class Router(info: ProjectInfo) extends ParentProject(info) with Deps
+    class Core(info: ProjectInfo) extends DefaultProject(info) with Deps
+    class Server(info: ProjectInfo) extends DefaultProject(info) with Deps
+    class Router(info: ProjectInfo) extends DefaultProject(info) with Deps
 
     trait Deps {
         val scalaSwing = "org.scala-lang" % "scala-swing" % "2.8.1"
