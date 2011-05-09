@@ -1,0 +1,15 @@
+import org.scalatest._
+import org.scalatest.matchers._
+
+import org.hinz.gis._
+
+class IntervalSpec extends Spec with ShouldMatchers {
+  
+  describe("An interval") {
+    it("should properly implement contains") {
+      val i = Interval(10,20,10,null)
+    }
+  }
+  
+
+}
