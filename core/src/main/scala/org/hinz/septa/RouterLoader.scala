@@ -41,7 +41,7 @@ class RouteLoader(db: String) {
       East
 
   private def buildRoute(rs: ResultSet) =
-    Route(rs.getInt("id"), rs.getString("shortname"), rs.getString("longname"), decodeDirection(rs.getString("direction")))
+    Route(rs.getInt("id"), rs.getString("shortname"), rs.getString("longname"), rs.getString("desc"), decodeDirection(rs.getString("direction")))
 
   // Sun May 08 17:13:07 EDT 2011
   val format = new SimpleDateFormat("EEE MMM dd HH:mm:ss z yyyy")

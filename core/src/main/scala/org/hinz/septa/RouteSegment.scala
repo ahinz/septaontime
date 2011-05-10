@@ -39,7 +39,7 @@ case object West extends Direction("w","WestBound")
  * @param longname Represents the final destination of this bus ("54th/City","Via Wynewood")
  * @param direction The direction this route travels
  */
-case class Route(id: Int, shortname: String, longname: String, direction:Direction)
+case class Route(id: Int, shortname: String, longname: String, desc: String, direction:Direction)
 
 /**
  * A Route Point represents a single point on a route
