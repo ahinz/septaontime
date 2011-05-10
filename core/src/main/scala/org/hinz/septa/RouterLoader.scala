@@ -99,6 +99,21 @@ class RouteLoader(db: String) {
 
   }
 
+  def createRouteData(d: RoutePoint) = {
+    val stmtstr = "insert into route_data (route_id,lat,lon,ref) values (" + d.route_id + "," + d.lat + "," + d.lon + "," + d.ref + ")"
+    runStatement(stmt =>
+      stmt.executeUpdate(stmtstr))
+  }
+
+  def createRoute(r: Route) = {
+    val stmtstr = "insert into route (shortname, longname, desc, direction) values (" +
+    List(r.shortname,r.longname,r.desc,r.direction.db).map("\"" + _ + "\"").mkString(",") + ")"
+
+    runStatement(stmt =>
+      stmt.executeUpdate(stmtstr))
+    loadRoutes(Map("shortname" -> r.shortname, "longname" -> r.longname, "desc" -> r.desc, "direction" -> r.direction.db)).head
+  }
+
   def createBusData(d: BusData) = {
     val stmtstr = "insert into bus_data(route,lat,lon,recorded_at,blocknum,busnum) values (" + List(d.route,d.lat,d.lon,d.time,d.block,d.bus).map("'" + _ + "'").mkString(",") + ")"
     //println("STMT: " + stmtstr)

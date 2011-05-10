@@ -108,7 +108,7 @@ class GISPanel(pts:List[List[(Double,Double)]]) extends Panel {
 }
 
 import org.hinz.septa.Routes._
-
+/*
 object HelloWorld extends SimpleSwingApplication {
   def top = new MainFrame {
     size = new java.awt.Dimension(1000,600)
@@ -117,4 +117,5 @@ object HelloWorld extends SimpleSwingApplication {
     contents = new GISPanel(processRoute(route44_e_dt2, loadFromXML(route44_e_dt2.r)))
   }
 }
+*/
 

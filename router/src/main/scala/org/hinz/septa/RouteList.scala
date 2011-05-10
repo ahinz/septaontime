@@ -7,6 +7,27 @@ import scala.io.Source
 // Specify Integer.MIN_VALUE to flip the first item
 case class RouteList(r: Route, order:List[Int])
 
+object RouteCreator {
+  def createRoute(r: RouteList, ld: RouteLoader) = {
+    val dbRoute = ld.createRoute(r.r)
+    println("  -> Inserted route " + dbRoute)
+    
+    val pts = Routes.processRoute(r,Routes.loadFromXML(r.r)).head
+    
+    createRouteData(r.r, pts).map(ld.createRouteData(_))
+  }
+
+  def createRouteData(r: Route, l: List[(Double,Double)], acc: List[RoutePoint]=Nil):List[RoutePoint] = l match {
+    case Nil => acc.reverse
+    case x::xs => 
+      if (acc.length == 0)
+        createRouteData(r, xs, RoutePoint(-1,r.id,x._1,x._2,0) :: acc)
+      else
+        createRouteData(r, xs, RoutePoint(-1,r.id,x._1,x._2,acc.head.ref + 
+                              GIS.distanceCalculator(x._1,x._2,acc.head.lat,acc.head.lon)) :: acc)
+  }
+}
+
 /**
  * This object contains the static mappings from route KML files to
  * a single stream of connected datapoints
@@ -21,8 +42,6 @@ case class RouteList(r: Route, order:List[Int])
  * all of the way back downtown, duplicating the overlapped section
  */
 object Routes {
-  val route44 = List(route44_w_54,route44_w_ard, route44_e_dt1,route44_e_dt2)
-
   val route44_w_54 = 
     RouteList(Route(-1,"44","54th St S. of City Ave","",West), List(0,1,3,4,9,8,7,5))
   val route44_w_ard =
@@ -31,6 +50,9 @@ object Routes {
     RouteList(Route(-1,"44","5th & Market St.", "Via Ardmore", East), List(-15,-16,-18,6,-7,10,-11,-4,-2,-1))
   val route44_e_dt2 =
     RouteList(Route(-1,"44","5th & Market St.", "Via 54th", East), List(-5,10,-11,-4,-2,-1))
+
+  val route44 = List(route44_w_54,route44_w_ard, route44_e_dt1,route44_e_dt2)
+
 
   /**
    * Load KML file from a local data store
@@ -52,7 +74,7 @@ object Routes {
    * @param r the route list
    * @return a single element list containing a list with the final points
    */
-  def processRoute(r: RouteList, pts:List[List[(Double,Double)]]) = 
+  def processRoute(r: RouteList, pts:List[List[(Double,Double)]]):List[List[(Double,Double)]] = 
     if (r.order == null)
       pts
     else

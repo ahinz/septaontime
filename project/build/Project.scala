@@ -9,7 +9,10 @@ class SeptaOnTime(info:ProjectInfo) extends ParentProject(info) {
     
     class Core(info: ProjectInfo) extends DefaultProject(info) with Deps
     class Server(info: ProjectInfo) extends DefaultProject(info) with Deps
-    class Router(info: ProjectInfo) extends DefaultProject(info) with Deps
+    class Router(info: ProjectInfo) extends DefaultProject(info) with Deps {
+       override def mainClass = Some("org.hinz.septa.Main")
+    }
+
 	class Services(info: ProjectInfo) extends DefaultWebProject(info) with Deps with AkkaProject {
 		override val akkaActor  = akkaModule("actor") withSources() // it's good to always have the sources around
 		val akkaHttp            = akkaModule("http")  withSources()

@@ -52,7 +52,7 @@ class Server(ld:RouteLoader) {
 
   def matchingRoutes(bd1:BusData, bd2:BusData, routes:List[Route]):List[Interval] = {
     routes.map(r => {
-      println(" --> Trying route " + r.shortname)
+      println(" --> Trying route " + r)
       val routeData = ld.loadRoutePoints(Map("route_id" -> r.id.toString))
 
       val rslt = e.distanceOnRoute(routeData,LatLon(bd1.lat,bd1.lon))
@@ -76,8 +76,8 @@ class Server(ld:RouteLoader) {
   }
 
   def runMe = {
-    val route = "23"
-    val liveData = getMostRecentLiveData(route).bus.filter(_.Direction == "NorthBound")
+    val route = "44"
+    val liveData = getMostRecentLiveData(route).bus //.filter(_.Direction == "NorthBound")
     
     liveData.map((a:BusRecord) => {
       val db = pollMostRecentBusData(a.VehicleID,a.BlockID)
@@ -93,7 +93,15 @@ class Server(ld:RouteLoader) {
         val inserted = ld.createBusData(newRecord)
         val prev = db.head
         
-        val newIntervals = matchingRoutes(prev,inserted, routes(North))
+        // Get direction
+        val direction = a.Direction match {
+          case "NorthBound" => North
+          case "SouthBound" => South
+          case "WestBound" => West
+          case "EastBound" => East
+        }
+
+        val newIntervals = matchingRoutes(prev,inserted, routes(direction))
         newIntervals.map(ld.createInterval(_))
       }
       else
