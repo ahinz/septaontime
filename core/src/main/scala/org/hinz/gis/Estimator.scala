@@ -1,6 +1,6 @@
 package org.hinz.gis
 
-import org.hinz.septa.{Interval => DInterval,_}
+import org.hinz.septa._
 import java.util.Date
 import java.awt.geom.Point2D
 
@@ -146,6 +146,34 @@ class Estimator {
    
     m._1.map( p => p._1.ref + GIS.distanceCalculator(p._1.lat,p._1.lon,pt.lat,pt.lon) )
   }
+
+  /**
+   * Given a distance (d) split any intervals that start before d on d
+   *
+   * @param startingPt the distance to split at
+   * @param intervals the list of possible intervals
+   * @return list with updated intervals
+   */
+  def matchStarts(startingPt: Double, intervals:List[Interval]):List[Interval] =
+    intervals.map(interval =>
+      if (interval.start < startingPt && startingPt < interval.end)
+        interval.split(startingPt)._2
+      else
+        interval)
+
+  /**
+   * Given a distance (d) split any intervals that end after d on d
+   *
+   * @param endingPt the distance to split at
+   * @param intervals the list of possible intervals
+   * @return list with updated intervals
+   */
+  def matchEnds(endingPt: Double, intervals:List[Interval]):List[Interval] =
+    intervals.map(interval =>
+      if (interval.end > endingPt && endingPt > interval.start)
+        interval.split(endingPt)._1
+      else
+        interval)
 
 
   def printlg(x:String) = if (log) print(x)

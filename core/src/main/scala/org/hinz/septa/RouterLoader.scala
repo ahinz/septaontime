@@ -91,7 +91,7 @@ class RouteLoader(db: String) {
   }
 
   def createInterval(t: Interval) = {
-    val stmtstr = "insert into interval_data (route_id,route_data_id1,route_data_id2,start_ref,end_ref,recordedAt,time) values (" + List(t.route_id, t.bus_data_id1, t.bus_data_id2,t.start_ref,t.end_ref,t.recordedAt,t.t).map("'" + _ + "'").mkString(",") + ")"
+    val stmtstr = "insert into interval_data (route_id,route_data_id1,route_data_id2,start_ref,end_ref,recordedAt,time) values (" + List(t.route_id, t.bus_data_id1, t.bus_data_id2,t.start,t.end,t.recordedAt,t.time).map("'" + _ + "'").mkString(",") + ")"
 
     println("STMT: " + stmtstr)
     runStatement(stmt =>

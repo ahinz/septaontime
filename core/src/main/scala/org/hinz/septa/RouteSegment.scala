@@ -48,7 +48,58 @@ case class RoutePoint(id: Int, route_id: Int, lat: Double, lon:Double, ref: Doub
 
 
 case class Interval(id: Int, route_id:Int, bus_data_id1:Int, bus_data_id2:Int,
-                    start_ref: Double, end_ref: Double, recordedAt:Date, t: Double) {
-  def toGInterval =
-    GInterval(start_ref, end_ref, t, recordedAt)
+                    start: Double, end: Double, recordedAt:Date, time: Double) {
+
+  def velocity = (end - start)/time
+
+  def samePoints(i: Interval) = 
+    U.dblCompare(i.start,start) && U.dblCompare(i.end,end)
+
+  /**
+   * Determine if this interval contains the given point
+   *
+   * @param d point to check
+   * @return true if d is in [start,end]
+   */
+  def contains(d: Double, includeEndPoints:Boolean = true):Boolean =
+    if (includeEndPoints)
+      d >= start && d <= end
+    else
+      d > start && d < end
+
+  /**
+   * Split an interval at the given points
+   */
+  def split(ds: List[Double]):List[Interval] =
+    splith(this, ds.sortWith(_ < _))
+
+  private def splith(i:Interval, ds: List[Double]):List[Interval] = ds match {
+    case Nil => List(i)
+    case x::xs => {
+      val splitInterval = i.split(x)
+      splitInterval._1 :: i.splith(splitInterval._2, xs)
+    }
+  }
+
+  /**
+   * Split an interval at the given point
+   * The ratio of distance to time remains the same
+   *
+   * If d is not in the interval an exception is thrown
+   */
+  def split(d: Double):(Interval,Interval) =
+    if (contains(d)) 
+      (Interval(id, route_id, bus_data_id1,bus_data_id2,start, d, recordedAt, ((d - start)/(end - start))*time),
+       Interval(id, route_id, bus_data_id1,bus_data_id2,d, end,recordedAt, ((end -d)/(end - start))*time))
+    else
+      throw new Exception("Cannot split " + toString + " on " + d)
+
+  override def toString = "[" + start + ", " + end + " (" + time +")]"
+
+
+}
+
+object U {
+  def dblCompare(d1:Double,d2:Double,tol:Double = .0000000001) =
+    math.abs(d1 - d2) < tol
 }
