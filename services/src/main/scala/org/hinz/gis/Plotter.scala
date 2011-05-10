@@ -77,25 +77,6 @@ class PlotterPanel(renderers:List[Renderer]) extends Panel {
   }
 }
 
-case class BusEst(blockId: String, busId: String, station: LatLon, origOffset: Double, offset: Double, arrival: Date) {
-  def arrival(v: Date):BusEst = BusEst(blockId, busId, station, origOffset, offset, v)
-}
-
-object Predictor {
-  
-  def estimateNextBus(station: LatLon, route:List[RoutePoint], buses: List[BusRecord], ivals:List[GInterval]):List[BusEst] = {
-
-    val sref = RouteProcessor.distanceOnRoute(route, station).get
-    val brefs:List[BusEst] = buses.map(x => 
-      BusEst(x.BlockID, x.VehicleID, station, x.Offset.toDouble, RouteProcessor.distanceOnRoute(route, LatLon(x.lat.toDouble,x.lng.toDouble)).getOrElse(-1.0), null)).filter(x => x.offset >= 0 && x.offset < sref)
-
-    val e = new Estimator(null)
-
-    val today = new Date()
-
-    brefs.map(x => x.arrival(new Date(today.getTime() - (x.origOffset * 60.0 * 1000.0).toLong + (e.estimate(x.offset, sref, ivals) * 1000).toLong))).sortWith(_.arrival.getTime < _.arrival.getTime)
-  }
-}
 
 object HelloWorld extends SimpleSwingApplication {
 
@@ -123,7 +104,7 @@ object HelloWorld extends SimpleSwingApplication {
   println("Loaded " + routepts.length + " points!")
   val buses = LiveDataLoader.getMostRecentLiveData("23").filter(_.Direction == "NorthBound")
 
-  println(Predictor.estimateNextBus(LatLon(slat,slon), routepts,buses, ivals.map(_.toGInterval)).mkString("\n"))
+  println(new Estimator().estimateNextBus(LatLon(slat,slon), routepts,buses, ivals.map(_.toGInterval)).mkString("\n"))
 
 
   def top = new MainFrame {
