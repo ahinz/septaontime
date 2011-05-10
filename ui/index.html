@@ -1,0 +1,134 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <title>Tweetme</title>
+
+    <!-- include JQuery through Google API => Always have the latest version -->
+    <script type="text/javascript" src="http://www.google.com/jsapi"></script>
+    <script type="text/javascript"> google.load("jquery", "1.3.2"); </script>
+
+    <!-- import JQTouch -->
+    <script src="jqtouch/jqtouch.min.js" type="application/x-javascript" charset="utf-8"></script>
+
+    <!-- Import JQTouch default style (iPhone look).
+       Replace the string "themes/apple" with "themes/jq" for a non-iPhone theme -->
+    <link type="text/css" rel="stylesheet" media="screen" href="jqtouch/jqtouch.css">
+    <link type="text/css" rel="stylesheet" media="screen" href="themes/apple/theme.css">
+
+    <!-- JavaScript goes here -->
+    <script type="text/javascript">
+        // Fire up JQTouch
+        var jQT = $.jQTouch({
+            statusBar: 'black'
+        });
+
+        // Determine if iPhone, Android or Desktop OS and setup the right click-event ("tap" vs "click").
+        var userAgent = navigator.userAgent.toLowerCase();
+        var isiPhone = (userAgent.indexOf('iphone') != -1 || userAgent.indexOf('ipod') != -1) ? true : false;
+        clickEvent = isiPhone ? 'tap' : 'click';
+
+        /**
+         * Initalize the programm
+         */
+        function init(){
+            $("#submitButton").bind(clickEvent, function(e){
+                getBusses()
+            });
+        }
+
+        /**
+         * Event-listener. Gets called if the user presses a button on his keyboard
+         * in the input field.
+         * @param keynum The pressed key (as an ASCii value)
+         */
+        function keydown(keynum){
+            if (keynum == 13){
+                $("#submitButton").trigger(clickEvent);
+            }
+        }
+
+        /**
+         * Does an ajax call and retrieves the tweets of the user specified in the
+         * input field "username_input"
+         */
+        function getBusses(){
+            // Show a loading message
+            var results_ul = document.getElementById("results_ul");
+            results_ul.innerHTML = "<li>Loading...</li>";
+
+            // Get the username from the input field
+            var username = document.getElementById("username_input").value;
+            var url = "http://localhost:8080/next"
+
+            // Do the ajax call
+            $.ajax({
+		url: url,
+		dataType: 'jsonp',
+		data: {
+		    lat: "40.006432",
+		    lon: "-75.215364",
+		    route: "44",
+		    direction: "e"},
+		success: function( d ) { 
+		    $.map(d, function( bus ) {
+		//	alert(bus.arrival);
+		    });
+
+		    showTweets(d);
+		}
+            });
+          }
+
+        /**
+         * Outputs the received tweets to the user-interface
+         * @param tweets The tweets as an array. Each element represents one tweet and can be accessed via tweets[i].text
+         */
+        function showTweets(tweets){
+          var results_ul = document.getElementById("results_ul");
+          results_ul.innerHTML = "";
+
+          if (tweets.length <= 0){
+            results_ul.innerHTML += "<li>User not found. Please press 'back' and try again.</li>";
+          }
+          else{
+            for (var i=0; i<tweets.length; i++){
+              results_ul.innerHTML += "<li>" + tweets[i].arrival + "</li>";
+            }
+          }
+        }
+    </script>
+
+    <!-- CSS styles -->
+    <style type="text/css" >
+
+    </style>
+  </head>
+
+  <!-- A simple JQTouch layout consisting of two views -->
+  <body onload="init();">
+    <!-- "Page 1" -->
+    <div id="theform">
+      <div class="toolbar">
+        <h1>TweetMe</h1>
+      </div>
+      <ul class="rounded">
+          <li><input onkeydown="keydown(event.which);" type="text" placeholder="User name" name="username" id="username_input" autocapitalize="off" autocorrect="off" autocomplete="off"></li>
+          <li class="arrow"><a id="submitButton" href="#tweets">View tweets</a></li>
+      </ul>
+    </div>
+
+    <!-- "Page 2" - Will contain the tweets found -->
+    <div id="tweets">
+      <div class="toolbar">
+        <h1>Results</h1>
+        <a class="button back" href="#">Back</a>
+      </div>
+      <ul id="results_ul" class="rounded">
+        <li>Loading...</li>
+      </ul>
+    </div>
+
+  </body>
+</html>

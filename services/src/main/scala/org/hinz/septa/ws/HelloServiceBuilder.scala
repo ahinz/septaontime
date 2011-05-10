@@ -4,6 +4,8 @@ import org.hinz.septa._
 import org.hinz.gis._
 
 import cc.spray._
+import cc.spray.http._
+import cc.spray.http.MediaTypes._
 import org.hinz.septa.DirectionFactory._
 
 import akka.actor.{Actor, PoisonPill}
@@ -32,11 +34,16 @@ object Worker {
     
     
     // Grab estimates for each route:
-    val pts:List[Either[String,List[BusEst]]] = rts.map(r => e.estimateNextBus(
-      station, 
-      ld.loadRoutePoints(Map("route_id" -> r.id.toString)),
-      live,
-      ld.loadIntervals(r.id)))
+    val pts:List[Either[String,List[BusEst]]] = rts.map(r => {
+      println("  ** Processing route " + r)
+      e.estimateNextBus(
+        station, 
+        ld.loadRoutePoints(Map("route_id" -> r.id.toString)),
+        live,
+        ld.loadIntervals(r.id))
+    })
+
+    println("* Done processing!")
 
     val finalEst:List[BusEst] = pts.filter(_.isRight).map(_.right.get).flatten
 
@@ -55,10 +62,14 @@ trait HelloServiceBuilder extends ServiceBuilder {
    */
   val helloService = {
     path("next") { 
-      parameters('lat,'lon,'route, 'direction) {
-        (lat, lon, route, direction) =>
+      parameters('callback, 'lat,'lon,'route, 'direction) {
+        (callback, lat, lon, route, direction) =>
           get { 
-            _.complete(Worker.getEstimates(LatLon(lat.toDouble, lon.toDouble), route, directionForString(direction).get)) }
+            _.complete(
+              HttpContent(
+                ContentType(`application/json`),
+                callback + "(" +
+                Worker.getEstimates(LatLon(lat.toDouble, lon.toDouble), route, directionForString(direction).get) + ")")) }
       }
     }
     
