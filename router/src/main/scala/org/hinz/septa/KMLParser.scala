@@ -18,7 +18,7 @@ class DBWriter(db:String) {
 
   def writePoints(routeid:Int, pts: List[(Double,Double)]) = {
     val connection = DriverManager.getConnection(
-      "jdbc:sqlite:/Users/ahinz/src/hobby/workhorse/devdb.db")
+      "jdbc:sqlite:devdb.db")
     val statement = connection.createStatement();
     
     addDistanceToPts(pts).map(x => writeSinglePoint(statement, routeid, x._1,x._2,x._3))
@@ -57,7 +57,7 @@ class KMLParser {
   // Intersert
   val pts2 = List(pts(2),pts(0).reverse,pts(5).reverse,pts(6)).flatten
 
-  new DBWriter("2").writePoints(1,pts2)
+//  new DBWriter("2").writePoints(1,pts2)
 
   def test() = {
     val lines = coords(file)
