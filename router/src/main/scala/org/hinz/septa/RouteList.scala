@@ -7,7 +7,19 @@ import scala.io.Source
 // Specify Integer.MIN_VALUE to flip the first item
 case class RouteList(r: Route, order:List[Int])
 
-
+/**
+ * This object contains the static mappings from route KML files to
+ * a single stream of connected datapoints
+ *
+ * Each route is described by a series of indicies. To reverse the order
+ * of points mark the index as negative. If the first index (index 0) should
+ * be reversed it should be marked as Integer.MIN_VALUE
+ *
+ * Each "section" of a normal route should be extended for the entire normal
+ * route. For example, if a route went from center city to the main line and then
+ * split to Cynwyd and to Bryn Mawr, each of those should be a route from the terminus
+ * all of the way back downtown, duplicating the overlapped section
+ */
 object Routes {
   val route44 = List(route44_w_54,route44_w_ard, route44_e_dt1,route44_e_dt2)
 
@@ -16,15 +28,31 @@ object Routes {
   val route44_w_ard =
     RouteList(Route(-1,"44","Ardmore Station", "", West), List(0,1,3,4,9,8,7,-6,18,16,15))
   val route44_e_dt1 = 
-    RouteList(Route(-1,"44","??", "Via Ardmore", East), List(-15,-16,-18,6,-7,10,-11,-4,-2,-1))
+    RouteList(Route(-1,"44","5th & Market St.", "Via Ardmore", East), List(-15,-16,-18,6,-7,10,-11,-4,-2,-1))
   val route44_e_dt2 =
-    RouteList(Route(-1,"44","??", "Via 54th", East), List(-5,10,-11,-4,-2,-1))
+    RouteList(Route(-1,"44","5th & Market St.", "Via 54th", East), List(-5,10,-11,-4,-2,-1))
 
-  def processRoute(r: RouteList) = {
-    val file = XML.loadString(Source.fromFile("/Users/ahinz/Downloads/" + r.r.shortname + ".kml").getLines.mkString("\n"))
+  /**
+   * Load KML file from a local data store
+   *
+   * @param r the Route to load
+   * @return a List of segments
+   */
+  def loadFromXML(r: Route) = {
+    val file = XML.loadString(Source.fromFile("/Users/ahinz/Downloads/" + r.shortname + ".kml").getLines.mkString("\n"))
 
-    val pts = coords(file)
+    coords(file)
+  }
 
+  /**
+   * Process the route list, based on order
+   *
+   * If order is NULL then pts is returned unaltered
+   * 
+   * @param r the route list
+   * @return a single element list containing a list with the final points
+   */
+  def processRoute(r: RouteList, pts:List[List[(Double,Double)]]) = 
     if (r.order == null)
       pts
     else
@@ -32,8 +60,14 @@ object Routes {
         if (v >= 0) pts(v)
         else if (v == Integer.MIN_VALUE) pts(0).reverse
         else pts(-v).reverse).flatten)
-  }
 
+
+  /**
+   * Parse KML document
+   *
+   * @param xml XML parsed kml document
+   * @return List of line segments where each segment is a list of poitns
+   */
   def coords(xml:NodeSeq) = {
     (xml \\ "coordinates").map(_.text.split(" ").toList.map(llpair => {
       val ll = llpair.split(",")
