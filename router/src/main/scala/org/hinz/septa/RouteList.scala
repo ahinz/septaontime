@@ -14,7 +14,7 @@ object RouteCreator {
     
     val pts = Routes.processRoute(r,Routes.loadFromXML(r.r)).head
     
-    createRouteData(r.r, pts).map(ld.createRouteData(_))
+    createRouteData(dbRoute, pts).map(ld.createRouteData(_))
   }
 
   def createRouteData(r: Route, l: List[(Double,Double)], acc: List[RoutePoint]=Nil):List[RoutePoint] = l match {
