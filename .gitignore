@@ -1,9 +1,8 @@
- *~
- *~
  *#
  .#*
 .ensime
 *.db
+*~
 route.url
 .DS_Store
 target/
