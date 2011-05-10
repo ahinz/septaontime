@@ -1,7 +1,7 @@
 package org.hinz.septa
 
 import java.util.Date
-import org.hinz.gis.{Interval => GInterval}
+import org.hinz.gis._
 
 /**
  * This file contains model definitions for the routes

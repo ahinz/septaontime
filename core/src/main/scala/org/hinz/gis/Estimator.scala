@@ -84,10 +84,10 @@ class Estimator {
   final def estimate(startDist:Double, endDist:Double, intervals:List[Interval], est:Double = 0):Double = {
     if (startDist >= endDist) est
     else {
-      val thisInterval = Interval(startDist,startDist+segSize,0,null)
+      val thisInterval = (startDist,startDist+segSize)
       printlg("About to process " + thisInterval + "... ")
 
-      val inRange = intervals.filter(x => x.start <= thisInterval.end && x.end >= thisInterval.start)
+      val inRange = intervals.filter(x => x.start <= thisInterval._2 && x.end >= thisInterval._1)
 
       printlg(" #I: " + inRange.length)
 
@@ -100,7 +100,7 @@ class Estimator {
 
       printlg(" Avg V: " + spd)
       printlnlg(" Est: " + combd)
-      estimate(thisInterval.end, endDist, intervals, est + combd)
+      estimate(thisInterval._2, endDist, intervals, est + combd)
     }
   }
   
