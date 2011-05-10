@@ -1,9 +1,9 @@
-package org.hinz.septa;
+package org.hinz.gis;
 
 import scala.xml._
 import scala.io.Source
 
-import org.hinz.gis.{Interval => GInterval,_}
+import org.hinz.septa._
 
 import swing._
 import scala.swing.event._
@@ -22,8 +22,8 @@ class IntervalRenderer(var ivals:List[List[Interval]]) extends Renderer {
     
     ivals.map(intervals => {
       intervals.map(interval => {
-        val startAt = interval.start_ref
-        val endAt = interval.end_ref
+        val startAt = interval.start
+        val endAt = interval.end
 
         // Just want to transform X values:
         val tStart = transform.transform(new Point2D.Double(startAt, 0.0), null).getX
@@ -104,7 +104,7 @@ object HelloWorld extends SimpleSwingApplication {
   println("Loaded " + routepts.length + " points!")
   val buses = LiveDataLoader.getMostRecentLiveData("23").filter(_.Direction == "NorthBound")
 
-  println(new Estimator().estimateNextBus(LatLon(slat,slon), routepts,buses, ivals.map(_.toGInterval)).mkString("\n"))
+  println(new Estimator().estimateNextBus(LatLon(slat,slon), routepts,buses, ivals).mkString("\n"))
 
 
   def top = new MainFrame {
