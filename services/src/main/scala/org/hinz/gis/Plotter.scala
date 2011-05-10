@@ -76,9 +76,21 @@ class PlotterPanel(renderers:List[Renderer]) extends Panel {
     renderers.map(_.render(g,transform,this))
   }
 }
-
-
+/**
 object HelloWorld extends SimpleSwingApplication {
+
+  //TODO: Move this stuff to an actual services layer
+  //TODO: Create a visualization project
+
+  
+   * Steps:
+   *
+   * INPUT: Station Lat/Lon, Direction, Route
+   * (1) Load intervals for that route (DB)
+   * (2) Load buses on the given route (JSON)
+   * (3) Identify which the internal route for each bus
+   * (4) Load the internal route and apply estimation 
+   *
 
   val db = "devdb.db"
     
@@ -88,7 +100,6 @@ object HelloWorld extends SimpleSwingApplication {
 
   // Let's try to make some guesses:
   val busdata = LiveDataLoader.getMostRecentLiveData("23")
-
   
 
   // Let's try to make a guess!!
@@ -114,3 +125,4 @@ object HelloWorld extends SimpleSwingApplication {
     contents = new PlotterPanel(List(new IntervalRenderer(List(ivals))))
   }
 }
+**/
