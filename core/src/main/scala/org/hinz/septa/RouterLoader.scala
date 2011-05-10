@@ -84,6 +84,11 @@ class RouteLoader(db: String) {
   def loadRoutePoints(where: Map[String,String] = null):List[RoutePoint] =
     loadWithBuilder("select * from route_data " + buildWhereClause(where), buildRoutePoint _)
 
+  def loadIntervals(route: Int) = {
+    val stmt = "select * from interval_data where route_id=" + route
+    loadWithBuilder(stmt, buildInterval _)
+  }
+
   def loadIntervals(route: Int, startRef:Double, endRef:Double) = {
     val stmt = "select * from interval_data where route_id=" + route + " and start_ref <= " + endRef + " AND end_ref >= " + startRef
     println(stmt)

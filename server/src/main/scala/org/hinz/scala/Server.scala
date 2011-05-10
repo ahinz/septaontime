@@ -94,15 +94,20 @@ class Server(ld:RouteLoader) {
         val prev = db.head
         
         // Get direction
+        println("direction = " + a.Direction)
         val direction = a.Direction match {
-          case "NorthBound" => North
-          case "SouthBound" => South
-          case "WestBound" => West
-          case "EastBound" => East
+          case "NorthBound" => Some(North)
+          case "SouthBound" => Some(South)
+          case "WestBound" => Some(West)
+          case "EastBound" => Some(East)
+          case _ => None
         }
-
-        val newIntervals = matchingRoutes(prev,inserted, routes(direction))
-        newIntervals.map(ld.createInterval(_))
+        
+        for(d <- direction) yield {
+          println("   Tring to match to routes now...")
+          val newIntervals = matchingRoutes(prev,inserted, routes(d))
+          newIntervals.map(ld.createInterval(_))
+        }
       }
       else
         println("No update... stale real-time data")

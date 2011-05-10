@@ -34,33 +34,39 @@ class Estimator {
    *
    * @return List of bus estimates
    */
-  def estimateNextBus(station: LatLon, route:List[RoutePoint], buses: List[BusRecord], ivals:List[Interval]):List[BusEst] = {
+  def estimateNextBus(station: LatLon, route:List[RoutePoint], buses: List[BusRecord], ivals:List[Interval]):Either[String,List[BusEst]] = {
     
     // Determine linear ref for the station
-    val sref = distanceOnRoute(route, station).get
+    val srefOpt = distanceOnRoute(route, station)
 
-    // Convert each bus to a linear ref and discard busses
-    // that have already arrived at the destination
-    val brefs:List[BusEst] = buses.map(x =>
-      BusEst(x.BlockID, 
-             x.VehicleID, 
-             station, 
-             x.Offset.toDouble, 
-             distanceOnRoute(
-               route, 
-               LatLon(x.lat.toDouble,x.lng.toDouble)).getOrElse(-1.0), null)).filter(
-                 x => x.offset >= 0 && x.offset < sref)
-    
-    val t = new Date().getTime
-    
-    // Convert from time offset (in seconds) to a data
-    // also substract original delay (in minutes)
-    brefs.map(x => 
-      x.arrival(
-        new Date(t - 
-                 (x.origOffset * 60.0 * 1000.0).toLong + 
-                 (estimate(x.offset, sref, ivals) * 1000).toLong))).sortWith(
-                   _.arrival.getTime < _.arrival.getTime)
+    if (srefOpt.isDefined) {
+      val sref = srefOpt.get
+
+      // Convert each bus to a linear ref and discard busses
+      // that have already arrived at the destination
+      val brefs:List[BusEst] = buses.map(x =>
+        BusEst(x.BlockID, 
+               x.VehicleID, 
+               station, 
+               x.Offset.toDouble, 
+               distanceOnRoute(
+                 route, 
+                 LatLon(x.lat.toDouble,x.lng.toDouble)).getOrElse(-1.0), null)).filter(
+                   x => x.offset >= 0 && x.offset < sref)
+      
+      val t = new Date().getTime
+      
+      // Convert from time offset (in seconds) to a data
+      // also substract original delay (in minutes)
+      Right(brefs.map(x => 
+        x.arrival(
+          new Date(t - 
+                   (x.origOffset * 60.0 * 1000.0).toLong + 
+                   (estimate(x.offset, sref, ivals) * 1000).toLong))).sortWith(
+                     _.arrival.getTime < _.arrival.getTime))
+    } else {
+      Left("Error - station lat/lon not found on the given route")
+    }
   }
 
   var log = false

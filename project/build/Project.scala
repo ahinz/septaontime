@@ -17,10 +17,11 @@ class SeptaOnTime(info:ProjectInfo) extends ParentProject(info) {
 		override val akkaActor  = akkaModule("actor") withSources() // it's good to always have the sources around
 		val akkaHttp            = akkaModule("http")  withSources()
 		val spray               = "cc.spray" %% "spray" % "0.5.0" % "compile" withSources()
-		val JETTY_VERSION = "8.0.0.M2"
+		val JETTY_VERSION = "8.0.0.M1"
 		val jettyServer = "org.eclipse.jetty" % "jetty-server" % JETTY_VERSION % "test"
-		val jettyWebApp = "org.eclipse.jetty" % "jetty-webapp" % JETTY_VERSION % "test"
-	}
+	    val jettyWebApp = "org.eclipse.jetty" % "jetty-webapp" % JETTY_VERSION % "test"
+        val javaxServlet30 = "org.mortbay.jetty" % "servlet-api" % "3.0.20100224" % "provided" 
+      }
 
     trait Deps {
         val scalaSwing = "org.scala-lang" % "scala-swing" % "2.8.1"

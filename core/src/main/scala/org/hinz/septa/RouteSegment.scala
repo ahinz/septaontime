@@ -25,7 +25,17 @@ case class BusData(id: Int, route: String, lat: Double, lon:Double, time: Date, 
 // Direction of the route
 // db -> string stored in the database (n,s,...)
 // septa -> septa string (SouthBound,NorthBound,...)
-sealed class Direction(val db: String, septa:String)
+object DirectionFactory {
+  def directionForString(db:String):Option[Direction] = db match {
+    case "n" => Some(North)
+    case "s" => Some(South)
+    case "e" => Some(East)
+    case "w" => Some(West)
+    case _ => None
+  }
+}
+
+sealed class Direction(val db: String, val septa:String)
 case object North extends Direction("n","NorthBound")
 case object South extends Direction("s","SouthBound")
 case object East extends Direction("e","EastBound")
