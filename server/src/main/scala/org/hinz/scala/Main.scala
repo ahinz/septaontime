@@ -4,18 +4,7 @@ import org.hinz.septa.server._
 import scala.annotation.tailrec
 
 object Main {
-  val db = "/Users/ahinz/src/hobby/workhorse/devdb.db"
-    
-  val r = new RouteLoader(db)
-  val lat = 40.008144
-  val lon = -75.150421
-
-  val routepts = r.loadRoutePoints(Map("route_id" -> "1"))
-  println("Loaded " + routepts.length + " points!")
-
-  val pts = RouteProcessor.distanceOnRoute(routepts, LatLon(lat,lon)).get
-
-  println("pts... " + pts)
+  val db = "devdb.db"
 
   def time =
     System.currentTimeMillis()

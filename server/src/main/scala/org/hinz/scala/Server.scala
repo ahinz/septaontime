@@ -9,6 +9,7 @@ import scala.io._
 import net.liftweb.json.JsonParser._
 
 import org.hinz.septa._
+import org.hinz.gis._
 
 case class BusRecord(lat:String,lng:String,label:String,VehicleID:String,BlockID:String,Direction:String,destination:String,Offset:String)
 case class BusRecords(bus: List[BusRecord])
@@ -19,6 +20,7 @@ class Server(ld:RouteLoader) {
   implicit val formats = net.liftweb.json.DefaultFormats
 
   val liveRoute = Source.fromFile("route.url").getLines.mkString("")
+  val e = new Estimator
 
   def getMostRecentLiveData(route: String) =
     parse(Source.fromURL(liveRoute  + route).getLines.mkString("")).extract[BusRecords]
@@ -53,10 +55,10 @@ class Server(ld:RouteLoader) {
       println(" --> Trying route " + r.shortname)
       val routeData = ld.loadRoutePoints(Map("route_id" -> r.id.toString))
 
-      val rslt = RouteProcessor.distanceOnRoute(routeData,LatLon(bd1.lat,bd1.lon))
+      val rslt = e.distanceOnRoute(routeData,LatLon(bd1.lat,bd1.lon))
 
       if (rslt.isDefined) {
-        val rslt2 = RouteProcessor.distanceOnRoute(routeData,LatLon(bd2.lat,bd2.lon))
+        val rslt2 = e.distanceOnRoute(routeData,LatLon(bd2.lat,bd2.lon))
 
         if (rslt2.isDefined) {
           println("      Positive Match!")
