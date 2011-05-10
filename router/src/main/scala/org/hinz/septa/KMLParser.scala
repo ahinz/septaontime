@@ -39,7 +39,7 @@ class DBWriter(db:String) {
 
 class KMLParser {
 
-  val file = XML.loadString(Source.fromFile("/Users/ahinz/Downloads/23.kml").getLines.mkString("\n"))
+  val file = XML.loadString(Source.fromFile("/Users/ahinz/Downloads/44.kml").getLines.mkString("\n"))
   
   def coords(xml:NodeSeq) = {
     (xml \\ "coordinates").map(_.text.split(" ").toList.map(llpair => {
@@ -124,8 +124,7 @@ class GISPanel(k: KMLParser) extends Panel {
 
     var k = 0
 
-    // 2,0,5,6
-    val pts2 = List(List(pts(2),pts(0).reverse,pts(5).reverse,pts(6)).flatten)
+    val pts2 = pts //List(List(pts(2),pts(0).reverse,pts(5).reverse,pts(6)).flatten)
 
     var ptx:Point2D = null
 
