@@ -51,11 +51,23 @@ object Worker {
 }
       
 object JSONP {
-  def apply(callback: String, body: String) = 2
+  def apply(callback: String, body: String) = 
+    jsonp(callback, body)
+
+  def wrapJSONP(callback: String, body: String) =
+    if (callback != null && callback.length > 0) callback + "(" + body + ")"
+    else body
+
+  def jsonp(callback: String, body: String) =
+    HttpContent(
+      ContentType(`application/json`),
+      wrapJSONP(callback, body))
 }
 
 trait HelloServiceBuilder extends ServiceBuilder {
   
+  import JSONP._
+
   /**
    * To get an estimate we need to know:
    * - Lat/lon of the station
@@ -67,10 +79,9 @@ trait HelloServiceBuilder extends ServiceBuilder {
         (callback, lat, lon, route, direction) =>
           get { 
             _.complete(
-              HttpContent(
-                ContentType(`application/json`),
-                callback + "(" +
-                Worker.getEstimates(LatLon(lat.toDouble, lon.toDouble), route, directionForString(direction).get) + ")")) }
+              jsonp(callback,
+                   Worker.getEstimates(LatLon(lat.toDouble, lon.toDouble), route, directionForString(direction).get)))
+          }
       }
     }
 
