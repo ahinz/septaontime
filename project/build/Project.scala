@@ -6,12 +6,17 @@ class SeptaOnTime(info:ProjectInfo) extends ParentProject(info) {
     lazy val server = project("server","server", new Server(_), core)
     lazy val router = project("router","router", new Router(_), core)
 	lazy val services = project("services","services", new Services(_), core)
+    lazy val gtfs = project("gtfs","gtfs", new GTFS(_), core)
     
     class Core(info: ProjectInfo) extends DefaultProject(info) with Deps
     class Server(info: ProjectInfo) extends DefaultProject(info) with Deps
     class Router(info: ProjectInfo) extends DefaultProject(info) with Deps {
        override def mainClass = Some("org.hinz.septa.Main")
     }
+    class GTFS(info: ProjectInfo) extends DefaultProject(info) with Deps {
+       val httpclient = "commons-httpclient" % "commons-httpclient" % "3.1"
+        val tagsoup = "org.ccil.cowan.tagsoup" % "tagsoup" % "1.2"
+     }
 
 	class Services(info: ProjectInfo) extends DefaultWebProject(info) with Deps with AkkaProject {
 		override val akkaActor  = akkaModule("actor") withSources() // it's good to always have the sources around
