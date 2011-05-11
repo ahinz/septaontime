@@ -17,8 +17,6 @@ import net.liftweb.json.Serialization._
 object Worker {
   implicit val formats = Serialization.formats(NoTypeHints)
 
-  //TODO: Make this into an actor?
-  //This can all be done async
   val ld = new RouteLoader("devdb.db")
   val e = new Estimator()
 
@@ -52,6 +50,9 @@ object Worker {
 
 }
       
+object JSONP {
+  def apply(callback: String, body: String) = 2
+}
 
 trait HelloServiceBuilder extends ServiceBuilder {
   
@@ -62,7 +63,7 @@ trait HelloServiceBuilder extends ServiceBuilder {
    */
   val helloService = {
     path("next") { 
-      parameters('callback, 'lat,'lon,'route, 'direction) {
+      parameters('callback ?, 'lat,'lon,'route, 'direction) {
         (callback, lat, lon, route, direction) =>
           get { 
             _.complete(
@@ -72,6 +73,8 @@ trait HelloServiceBuilder extends ServiceBuilder {
                 Worker.getEstimates(LatLon(lat.toDouble, lon.toDouble), route, directionForString(direction).get) + ")")) }
       }
     }
+
+
     
   }
 

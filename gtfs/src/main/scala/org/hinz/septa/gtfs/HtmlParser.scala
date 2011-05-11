@@ -97,7 +97,8 @@ object FixedDataLoader {
 
 object Main {
   def main(args: Array[String]) = {
-    println(FixedDataLoader.getDirections("44"))
-    println(FixedDataLoader.getStations("44","Eastbound"))
+//    println(FixedDataLoader.getDirections("44"))
+//    println(FixedDataLoader.getStations("44","Eastbound"))
+    println(GTFSLoader.stations)
   }
 }

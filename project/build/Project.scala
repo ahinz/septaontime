@@ -5,9 +5,9 @@ class SeptaOnTime(info:ProjectInfo) extends ParentProject(info) {
     lazy val core = project("core","core", new Core(_))
     lazy val server = project("server","server", new Server(_), core)
     lazy val router = project("router","router", new Router(_), core)
-	lazy val services = project("services","services", new Services(_), core)
     lazy val gtfs = project("gtfs","gtfs", new GTFS(_), core)
-    
+    lazy val services = project("services","services", new Services(_), core, gtfs)    
+
     class Core(info: ProjectInfo) extends DefaultProject(info) with Deps
     class Server(info: ProjectInfo) extends DefaultProject(info) with Deps
     class Router(info: ProjectInfo) extends DefaultProject(info) with Deps {
