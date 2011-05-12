@@ -44,12 +44,12 @@ object Worker {
 
     println("* Done processing!")
 
-    val finalEst:List[BusEst] = pts.filter(_.isRight).map(_.right.get).flatten.sortWith(
-      _.arrival.getTime > _.arrival.getTime)
+    val finalEst:List[BusEst] = pts.filter(_.isRight).map(_.right.get).flatten
     
     // Remove duplciates:
     //TODO: This should be moved to the estimateNextBus method
-    write(finalEst.groupBy(x => x.blockId + "." + x.busId).map(k => k._2.head))
+    write(finalEst.groupBy(x => x.blockId + "." + x.busId).map(k => k._2.head).sortWith(
+      _.arrival.getTime < _.arrival.getTime))
     
 
 //    write(finalEst)
