@@ -48,7 +48,7 @@ object Worker {
     
     // Remove duplciates:
     //TODO: This should be moved to the estimateNextBus method
-    write(finalEst.groupBy(x => x.blockId + "." + x.busId).map(k => k._2.head).sortWith(
+    write(finalEst.groupBy(x => x.blockId + "." + x.busId).map(k => k._2.head).toList.sortWith(
       _.arrival.getTime < _.arrival.getTime))
     
 
