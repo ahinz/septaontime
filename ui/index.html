@@ -3,7 +3,7 @@
 <html>
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-    <title>Tweetme</title>
+    <title>SEPTA Next Bus</title>
 
     <!-- include JQuery through Google API => Always have the latest version -->
     <script type="text/javascript" src="http://www.google.com/jsapi"></script>
@@ -12,6 +12,7 @@
     <!-- import JQTouch -->
     <script src="jqtouch/jqtouch.min.js" type="application/x-javascript" charset="utf-8"></script>
     <script src="js/pubsub.js" type="application/x-javascript" charset="utf-8"></script>
+    <script src="js/date.js" type="application/x-javascript" charset="utf-8"></script>
 
     <!-- Import JQTouch default style (iPhone look).
        Replace the string "themes/apple" with "themes/jq" for a non-iPhone theme -->
@@ -67,7 +68,8 @@ function dirPresenter(item) {
 }
 
 function nextPresenter(item) {
-    return "<li>" + item.unknown + "</li>"
+    return "<li> Bus #" + item.busId + " at " + 
+	dateFormat(new Date(item.arrival),"HH:MM") + "</li>"
 }
 
 var state = {
@@ -134,7 +136,7 @@ function rebindEventHandlers() {
 	var dir = state.direction;
 	var dirname = state.direction_name;
 
-	$("#bus").text("Next " + dir + " on " + route + " to " + dirname);
+	$("#bus").text("Next #" + route + " Bus " + dir +  " " + dirname);
 
 	getNext(lat,lon,route,dir);
     });

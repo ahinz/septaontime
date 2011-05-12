@@ -44,7 +44,8 @@ object Worker {
 
     println("* Done processing!")
 
-    val finalEst:List[BusEst] = pts.filter(_.isRight).map(_.right.get).flatten
+    val finalEst:List[BusEst] = pts.filter(_.isRight).map(_.right.get).flatten.sortWith(
+      _.arrival.getTime < _.arrival.getTime)
     
     // Remove duplciates:
     //TODO: This should be moved to the estimateNextBus method
