@@ -24,5 +24,7 @@ class Boot {
   
   // attach an HttpService (which is also an actor)
   // the root service automatically starts the HttpService if it is unstarted
-  actor[RootService] ! Attach(HttpService(mainModule.helloService))
+  actor[RootService] ! Attach(HttpService(mainModule.nextBusService))
+  actor[RootService] ! Attach(HttpService(mainModule.routeService))
+
 }

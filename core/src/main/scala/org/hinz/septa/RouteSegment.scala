@@ -31,6 +31,10 @@ object DirectionFactory {
     case "s" => Some(South)
     case "e" => Some(East)
     case "w" => Some(West)
+    case "Northbound" => Some(North)
+    case "Southbound" => Some(South)
+    case "Eastbound" => Some(East)
+    case "Westbound" => Some(West)
     case _ => None
   }
 }

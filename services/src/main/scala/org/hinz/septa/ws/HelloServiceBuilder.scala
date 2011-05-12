@@ -1,6 +1,7 @@
 package org.hinz.septa.ws
 
 import org.hinz.septa._
+import org.hinz.septa.gtfs._
 import org.hinz.gis._
 
 import cc.spray._
@@ -65,6 +66,7 @@ object JSONP {
 }
 
 trait HelloServiceBuilder extends ServiceBuilder {
+  implicit val formats = Serialization.formats(NoTypeHints)
   
   import JSONP._
 
@@ -73,7 +75,7 @@ trait HelloServiceBuilder extends ServiceBuilder {
    * - Lat/lon of the station
    * - Route we want to query (route #)
    */
-  val helloService = {
+  val nextBusService = {
     path("next") { 
       parameters('callback ?, 'lat,'lon,'route, 'direction) {
         (callback, lat, lon, route, direction) =>
@@ -84,10 +86,49 @@ trait HelloServiceBuilder extends ServiceBuilder {
           }
       }
     }
-
-
-    
   }
 
+  val routeService = {
+
+    pathPrefix("route") {
+      path("routes") {
+        parameter('callback ?) {
+          callback =>
+            get {
+              _.complete(jsonp(callback, 
+                               write(FixedDataLoader.getRoutes)))
+            }
+        }
+      } ~ path("directions") {
+        parameters('callback ?, 'route) {
+          (callback, route) =>
+            get {
+              _.complete(jsonp(callback,
+                               write(FixedDataLoader.getDirections(route).getOrElse(Map("error" -> "unexpected error - this route may not exist!")))))
+            }
+        }
+      } ~ path("stations") {
+        parameters('callback ?, 'route, 'direction) {
+          (callback, route, direction) =>
+            get {
+              _.complete(jsonp(callback,
+                               write(findStations(route,direction) match {
+                                 case Some(x) => x
+                                 case None => Map("error" -> "station not found")
+                               })))
+            }
+        }
+      }
+    }
+  }
+  
+  def findStations(route: String, dir: String):Option[List[GTFSLoader.Station]] =
+    FixedDataLoader.getStations(route, dir).map(tupleList =>
+      tupleList.map(_ match {
+        case (routeid, desc) => GTFSLoader.stations.get(routeid)
+        case _ => None
+      }).flatten)
+
+      
   
 }

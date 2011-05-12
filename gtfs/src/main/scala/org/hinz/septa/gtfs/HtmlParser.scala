@@ -5,9 +5,9 @@ import org.ccil.cowan.tagsoup.jaxp._
 import scala.xml._
 import java.io._
 
-case class RouteDirection(route: String, directionID: String, name: String)
-
 object FixedDataLoader {
+
+  case class Route(route: String, directionID: String, name: String)
 
   val PROXY_KEY = "http.route.default-proxy"
 
@@ -49,7 +49,7 @@ object FixedDataLoader {
 
   def getRoutes = List("44")
 
-  def getStations(route: String, direction: String) = {
+  def getStations(route: String, direction: String):Option[List[(String,String)]] = {
     val method = postMethodForStations(route, direction)
     val returnCode = client.executeMethod(method)
 
@@ -60,7 +60,7 @@ object FixedDataLoader {
   }
     
 
-  def getDirections(route: String):Option[List[RouteDirection]] = {
+  def getDirections(route: String):Option[List[Route]] = {
     val method = postMethodForRoute(route)
     val returnCode = client.executeMethod(method)
 
@@ -86,12 +86,12 @@ object FixedDataLoader {
           case _ => None
         }
       case _ => None
-    }.flatten.toString
+    }.flatten.toList
   }
 
-  def extractDirectionTags(r: String, s: String):List[RouteDirection] = {
+  def extractDirectionTags(r: String, s: String):List[Route] = {
     (processHTMLDocument(s) \\ "option").map(e =>
-      RouteDirection(r, (e \ "@value").text, e.text)).toList
+      Route(r, (e \ "@value").text, e.text)).toList
   }
 }
 

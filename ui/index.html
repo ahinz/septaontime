@@ -11,6 +11,7 @@
 
     <!-- import JQTouch -->
     <script src="jqtouch/jqtouch.min.js" type="application/x-javascript" charset="utf-8"></script>
+    <script src="js/pubsub.js" type="application/x-javascript" charset="utf-8"></script>
 
     <!-- Import JQTouch default style (iPhone look).
        Replace the string "themes/apple" with "themes/jq" for a non-iPhone theme -->
@@ -19,6 +20,10 @@
 
     <!-- JavaScript goes here -->
     <script type="text/javascript">
+
+        var URL = "http://adamhinz.com:8080/"
+        var RoutesURL = URL + "route/"
+
         // Fire up JQTouch
         var jQT = $.jQTouch({
             statusBar: 'black'
@@ -29,75 +34,163 @@
         var isiPhone = (userAgent.indexOf('iphone') != -1 || userAgent.indexOf('ipod') != -1) ? true : false;
         clickEvent = isiPhone ? 'tap' : 'click';
 
+///// Should be scoped with a class
+///// TODO
+/**
+ * @param {
+ *   event:     Event to bind to
+ *   presenter: Function to present a single line
+ *   before:    Function called before anything happens
+ *   after:     Function called after the main loop
+ *   ui:        JQuery element
+ * }
+ */
+function bindAjaxCall(obj) {
+    $.subscribe(obj.event, function( pts ) {
+	if (obj.before != undefined) {
+	    obj.before( pts );
+	}
+
+	obj.ui.empty();
+	$.map(pts, function( item ) {
+	    obj.ui.append(obj.presenter(item));
+	});
+
+	if (obj.after != undefined) {
+	    obj.after( pts );
+	}
+    });
+}
+
+function dirPresenter(item) {
+    return listItem("submitDirection","#stations",item.directionID + "___" + item.route + "___" + item.name, item.directionID + " " + item.name);
+}
+
+function nextPresenter(item) {
+    return "<li>" + item.unknown + "</li>"
+}
+
+var state = {
+    route: ""
+};
+
+function stationPresenter(item) {
+    return listItem("submitStation","#next","station___" + item.lat + "___" + item.lon + "___" + item.name, item.name);
+}		 
+
+function listItem(clz, href, id, content) {
+    var liTemplate = "<li class=\"arrow\">%content%</li>"
+    var aTemplate = "<a class=\"%class%\" href=\"%href%\" id=\"%id%\">%content%</a>"
+
+    return liTemplate.replace("%content%",
+			      aTemplate.replace(
+				  "%class%", clz).replace(
+				      "%href%", href).replace(
+					  "%id%", id).replace(
+					      "%content%", content));
+}
+    
+
+$(function() {
+    bindAjaxCall({
+	event: "/ajax/directions/load",
+	presenter: dirPresenter,
+	ui: $("#dir_list"), 
+	before: function( pts ) { pts.sort( function( a,b ) { return a.name < b.name ? 1 : -1; }); },
+	after: rebindEventHandlers});
+
+    bindAjaxCall({
+	event: "/ajax/stations/load", 
+	presenter: stationPresenter,
+	ui: $("#station_list"),
+	before: function( pts ) { pts.sort( function( a,b ) { return a.name > b.name ? 1 : -1; }); },
+	after: rebindEventHandlers});
+
+    bindAjaxCall({
+	event: "/ajax/next/load",
+	presenter: nextPresenter,
+	ui: $("#bus_list")});
+});
+
+function rebindEventHandlers() {
+    $(".submitDirection").bind(clickEvent, function(e){
+	var routeParts = this.id.split("___");
+	var dir = routeParts[0]
+	var route = routeParts[1]
+	var dirname = routeParts[2]
+
+	state.direction = dir;
+	state.direction_name = dirname;
+
+	getStations(route,dir)
+    });
+
+    $(".submitStation").bind(clickEvent, function(e){
+	var stationParts = this.id.split("___");
+	var lat = stationParts[1];
+	var lon = stationParts[2];
+	var name = stationParts[3];
+	var route = state.route;
+	var dir = state.direction;
+	var dirname = state.direction_name;
+
+	$("#bus").text("Next " + dir + " on " + route + " to " + dirname);
+
+	getNext(lat,lon,route,dir);
+    });
+}
+
         /**
          * Initalize the programm
          */
         function init(){
-            $("#submitButton").bind(clickEvent, function(e){
-                getBusses()
+            $(".submitRoute").bind(clickEvent, function(e){
+		var routeNum = this.text;
+		state.route = routeNum;
+		$("#route").text("Route " + routeNum);
+		getDirections(routeNum);
             });
         }
 
-        /**
-         * Event-listener. Gets called if the user presses a button on his keyboard
-         * in the input field.
-         * @param keynum The pressed key (as an ASCii value)
-         */
-        function keydown(keynum){
-            if (keynum == 13){
-                $("#submitButton").trigger(clickEvent);
-            }
-        }
+function doAjax(url, event, data) {
+    $.ajax({
+	url: url,
+	dataType: 'jsonp',
+	data: data,
+	success: function( d ) {
+	    $.publish(event, [d, data])
+	}
+    });
+}
 
-        /**
-         * Does an ajax call and retrieves the tweets of the user specified in the
-         * input field "username_input"
-         */
-        function getBusses(){
-            // Show a loading message
-            var results_ul = document.getElementById("results_ul");
-            results_ul.innerHTML = "<li>Loading...</li>";
+function getNext(lat,lon,route,dir) {
+    doAjax(URL + "next",
+	   "/ajax/next/load",
+	   {
+	       lat: lat,
+	       lon: lon,
+	       route: route,
+	       direction: dir
+	   });
+}
 
-            // Get the username from the input field
-            var username = document.getElementById("username_input").value;
-            var url = "http://www.adamhinz.com:8080/next"
+function getStations(route,dir) {
+    doAjax(RoutesURL + "stations", 
+	   "/ajax/stations/load",
+	   { 
+	       route: route,
+	       direction: dir
+	   });
+}
+function getDirections(route) {
+    doAjax(RoutesURL + "directions", 
+	   "/ajax/directions/load",
+	   {
+	       route: route
+	   });
+}
 
-            // Do the ajax call
-            $.ajax({
-		url: url,
-		dataType: 'jsonp',
-		data: {
-		    lat: "40.006432",
-		    lon: "-75.215364",
-		    route: "44",
-		    direction: "e"},
-		success: function( d ) { 
-		    $.map(d, function( bus ) {
-		//	alert(bus.arrival);
-		    });
 
-		    showTweets(d);
-		}
-            });
-          }
-
-        /**
-         * Outputs the received tweets to the user-interface
-         * @param tweets The tweets as an array. Each element represents one tweet and can be accessed via tweets[i].text
-         */
-        function showTweets(tweets){
-          var results_ul = document.getElementById("results_ul");
-          results_ul.innerHTML = "";
-
-          if (tweets.length <= 0){
-            results_ul.innerHTML += "<li>User not found. Please press 'back' and try again.</li>";
-          }
-          else{
-            for (var i=0; i<tweets.length; i++){
-              results_ul.innerHTML += "<li>" + tweets[i].arrival + "</li>";
-            }
-          }
-        }
     </script>
 
     <!-- CSS styles -->
@@ -111,22 +204,45 @@
     <!-- "Page 1" -->
     <div id="theform">
       <div class="toolbar">
-        <h1>TweetMe</h1>
+        <h1>Septa Next Bus</h1>
       </div>
-      <ul class="rounded">
-          <li><input onkeydown="keydown(event.which);" type="text" placeholder="User name" name="username" id="username_input" autocapitalize="off" autocorrect="off" autocomplete="off"></li>
-          <li class="arrow"><a id="submitButton" href="#tweets">View tweets</a></li>
+      <h2>Select a Route</h2>
+      <ul id="routes">
+	<li class="arrow"><a id="submitRoute_44" class="submitRoute" href="#dirs">44</a></li>
+	<li class="arrow"><a id="submitRoute_23" class="submitRoute" href="#dirs">23</a></li>
       </ul>
     </div>
 
     <!-- "Page 2" - Will contain the tweets found -->
-    <div id="tweets">
+    <div id="dirs">
       <div class="toolbar">
-        <h1>Results</h1>
+        <h1>Septa Next Bus</h1>
         <a class="button back" href="#">Back</a>
       </div>
-      <ul id="results_ul" class="rounded">
+      <h2 id="route">What?</h2>
+      <ul id="dir_list" class="rounded">
         <li>Loading...</li>
+      </ul>
+    </div>
+
+    <div id="stations">
+      <div class="toolbar">
+	<h1>Septa Next Bus</h1>
+	<a class="button back" href="#">Back</a>
+      </div>
+      <ul id="station_list" class="rounded">
+	<li>Loading...</li>
+      </ul>
+    </div>
+
+    <div id="next">
+      <div class="toolbar">
+	<h1>Septa Next Bus</h1>
+	<a class="button back" href="#">Back</a>
+      </div>
+      <h2 id="bus"></h2>
+      <ul id="bus_list" class="rounded">
+	<li>Loading...</li>
       </ul>
     </div>
 
