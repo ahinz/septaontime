@@ -63,13 +63,23 @@ function bindAjaxCall(obj) {
     });
 }
 
+// Example date string:
+// 2011-05-18T18:20:00.205Z
+function processDate(date) {
+    var mainDateParts = date.split(".")[0].split("T");
+    var date = mainDateParts[0].split("-");
+    var time = mainDateParts[1].split(":");
+
+    return new Date(date[0], date[1], date[2], time[0], time[1]);
+}
+
 function dirPresenter(item) {
     return listItem("submitDirection","#stations",item.directionID + "___" + item.route + "___" + item.name, item.directionID + " " + item.name);
 }
 
 function nextPresenter(item) {
     return "<li> Bus #" + item.busId + " at " + 
-	dateFormat(new Date(item.arrival),"HH:MM") + "</li>"
+	dateFormat(processDate(item.arrival),"HH:MM") + "</li>"
 }
 
 var state = {
