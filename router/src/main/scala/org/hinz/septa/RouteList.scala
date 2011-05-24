@@ -9,12 +9,16 @@ case class RouteList(r: Route, order:List[Int])
 
 object RouteCreator {
   def createRoute(r: RouteList, ld: RouteLoader) = {
-    val dbRoute = ld.createRoute(r.r)
-    println("  -> Inserted route " + dbRoute)
-    
-    val pts = Routes.processRoute(r,Routes.loadFromXML(r.r)).head
-    
-    createRouteData(dbRoute, pts).map(ld.createRouteData(_))
+    if (ld.loadRoutes(Map("longname" -> r.r.longname)).length > 0) {
+      println("  -> Skipping " + r + " (already in db)")
+    } else {
+      val dbRoute = ld.createRoute(r.r)
+      println("  -> Inserted route " + dbRoute)
+      
+      val pts = Routes.processRoute(r,Routes.loadFromXML(r.r)).head
+      
+      createRouteData(dbRoute, pts).map(ld.createRouteData(_))
+    }
   }
 
   def createRouteData(r: Route, l: List[(Double,Double)], acc: List[RoutePoint]=Nil):List[RoutePoint] = l match {
@@ -50,8 +54,18 @@ object Routes {
     RouteList(Route(-1,"44","5th & Market St.", "Via Ardmore", East), List(-15,-16,-18,6,-7,10,-11,-4,-2,-1))
   val route44_e_dt2 =
     RouteList(Route(-1,"44","5th & Market St.", "Via 54th", East), List(-5,10,-11,-4,-2,-1))
+  val route44_w_glad = 
+    RouteList(Route(-1,"44","Gladwyne","",West), List(0,1,3,4,9,19,21,22))
+  val route44_e_dt3 =
+    RouteList(Route(-1,"44","5th & Market St.", "Via Gladwyne", East), List(-22,-21,-19,-11,-4,-2,-1))
 
-  val route44 = List(route44_w_54,route44_w_ard, route44_e_dt1,route44_e_dt2)
+  val route44 = List(
+    route44_w_54,
+    route44_w_ard, 
+    route44_w_glad,
+    route44_e_dt1,
+    route44_e_dt2,
+    route44_e_dt3)
 
 
   /**
