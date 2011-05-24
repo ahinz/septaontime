@@ -10,15 +10,6 @@ object Main {
   def logln(s: String) = log(s + "\n")
 
   def main(args: Array[String]) = {
-    val top = new MainFrame {
-      size = new java.awt.Dimension(1000,600)
-      preferredSize = new Dimension(1000,600)
-      title = "Hello, World!"
-      contents = new GISPanel(processRoute(route44_e_dt3, loadFromXML(route44_e_dt2.r)))
-    }
-
-    top.pack
-    top.visible = true
  
     // Create default routes
     val db = "devdb.db"
@@ -39,6 +30,17 @@ object Main {
     Routes.route44.map(r => {
       logln("Trying to create route " + r)
       createRoute(r, ld)})                  
+
+    val top = new MainFrame {
+      size = new java.awt.Dimension(1000,600)
+      preferredSize = new Dimension(1000,600)
+      title = "Hello, World!"
+      contents = new GISPanel(processRoute(route44_e_dt3, loadFromXML(route44_e_dt2.r)))
+    }
+
+    top.pack
+    top.visible = true
+
 
   }
 }
