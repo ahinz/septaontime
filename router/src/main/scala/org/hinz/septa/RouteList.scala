@@ -9,7 +9,9 @@ case class RouteList(r: Route, order:List[Int])
 
 object RouteCreator {
   def createRoute(r: RouteList, ld: RouteLoader) = {
-    if (ld.loadRoutes(Map("longname" -> r.r.longname)).length > 0) {
+    if (ld.loadRoutes(
+	Map("longname" -> r.r.longname,
+		"desc" -> r.r.desc)).length > 0) {
       println("  -> Skipping " + r + " (already in db)")
     } else {
       val dbRoute = ld.createRoute(r.r)

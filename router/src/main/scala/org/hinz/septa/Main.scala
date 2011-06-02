@@ -14,7 +14,7 @@ object Main {
     // Create default routes
     val db = "devdb.db"
     val ld = new RouteLoader(db)
-/*    
+    
     log("Starting to clean the database...")
 
     ld.runStatement(stmt => {
@@ -25,12 +25,12 @@ object Main {
     })
 
     logln("done")
-*/
+
 
     Routes.route44.map(r => {
       logln("Trying to create route " + r)
       createRoute(r, ld)})                  
-
+/*
     val top = new MainFrame {
       size = new java.awt.Dimension(1000,600)
       preferredSize = new Dimension(1000,600)
@@ -40,7 +40,8 @@ object Main {
 
     top.pack
     top.visible = true
-
+*/
 
   }
 }
+
