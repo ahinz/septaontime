@@ -9,6 +9,11 @@ def test
   next_bus(40.006129, -75.215433, "Eastbound", "44")
 end
 
+def test_time
+  u = URI.parse("http://adamhinz.com:8080/time/44/Eastbound?lat1=40.006129&lon1=-75.215433&lat2=39.952449&lon2=-75.165476")
+  JSON.parse(Net::HTTP.get(u))
+end
+
 def next_bus(lat,lon,dir,route,url=$URL,sfx=$NEXT_PREFIX)
   u = URI.parse(url + sfx + "?lat=#{lat}&lon=#{lon}&direction=#{dir}&route=#{route}")
   log u
@@ -23,7 +28,8 @@ def fmtbus(bus_hash)
 end
 
 ask  "", :choices => "[ANY]"
-result = say test().map { |m| fmtbus(m) }.join(", ")
+result = say(test().map { |m| fmtbus(m) }.join(", ") + fmtbus(test_time.merge({"busId" => "Est Arrival"})))
+
  
 #say "You chose " + result.value
  
