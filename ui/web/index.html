@@ -14,6 +14,42 @@
     var RoutesURL = URL + "route/"
 
     $(function() {
+	$("#find_time").click(function(obj) {
+	    var stationval1 = $("#duration_station1 option:selected").attr("value");
+	    var stationval2 = $("#duration_station2 option:selected").attr("value");
+	    var values1 = parseNextValue(
+		$("#duration_direction option:selected").attr("value"),
+		stationval1);
+	    var values2 = parseNextValue(
+		$("#duration_direction option:selected").attr("value"),
+		stationval2);
+
+	    var ajaxURL = URL + "time/" + values1.route + "/" + values1.direction;
+	    var values = {
+		lat1: values1.lat,
+		lon1: values1.lon,
+		lat2: values2.lat,
+		lon2: values2.lon
+	    };
+
+	    $.ajax({
+		url: ajaxURL, 
+		dataType: 'jsonp',
+		data: values,
+		success: function( d ) {
+		    $("#teaser").remove();
+		    var ui = $("#bus_times");
+		    ui.empty();
+
+		    $.map(d, function( item ) {
+			ui.append("<div> Bus #" + item.busId + " at " + 
+				  dateFormat(processDate(item.arrival),"HH:MM") + "</div>")
+
+		    });
+		}});
+	    
+	});
+
 	$("#route_by_station").change(function(obj) {
 	    var route = $("#route_by_station option:selected").text()
 	    $("#duration_route").val(route);
@@ -114,7 +150,6 @@
 	});
 
 	function loadBusInfo() {
-
 	    var stationval = $("#station_by_station option:selected").attr("value");
 	    var values = parseNextValue(
 		$("#direction_by_station option:selected").attr("value"),
@@ -204,6 +239,9 @@
       <select id="duration_station2" disabled>
 	<option>---------------</option>
       </select>
+      <div>
+	<input type="submit" id="find_time">
+      </div>
     </div>
     <div class="span-5 col last">
       Google AdWords Here
