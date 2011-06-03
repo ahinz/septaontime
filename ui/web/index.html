@@ -14,6 +14,8 @@
     var RoutesURL = URL + "route/"
 
     $(function() {
+	var timeOffset = -1;
+
 	$("#find_time").click(function(obj) {
 	    var stationval1 = $("#duration_station1 option:selected").attr("value");
 	    var stationval2 = $("#duration_station2 option:selected").attr("value");
@@ -37,15 +39,11 @@
 		dataType: 'jsonp',
 		data: values,
 		success: function( d ) {
-		    $("#teaser").remove();
-		    var ui = $("#bus_times");
-		    ui.empty();
+		    var arrival = processDate(d.arrival, true);
+		    timeOffset = arrival.getTime() - new Date().getTime();
 
-		    $.map(d, function( item ) {
-			ui.append("<div> Bus #" + item.busId + " at " + 
-				  dateFormat(processDate(item.arrival),"HH:MM") + "</div>")
-
-		    });
+		    // Now reload stop times...
+		    loadBusInfo();
 		}});
 	    
 	});
@@ -99,15 +97,18 @@
 
 	// Example date string:
 	// 2011-05-18T18:20:00.205Z
-	function processDate(date) {
+	function processDate(date, retainhours) {
+	    var keephrs = retainhours != undefined && retainhours == true
+	    
 	    var mainDateParts = date.split(".")[0].split("T");
 	    var date = mainDateParts[0].split("-");
 	    var time = mainDateParts[1].split(":");
 	    var hr = time[0] - 4;
-	    if (hr > 12) {
+	    if (hr > 12 && !keephrs) {
 		hr = hr - 12;
 	    }
-	    return new Date(date[0], date[1], date[2], hr, time[1]);
+	    // Zero index month
+	    return new Date(date[0], date[1] - 1, date[2], hr, time[1]);
 	}
 
 	$("#direction_by_station").change(function(obj) {
@@ -165,8 +166,18 @@
 		    ui.empty();
 
 		    $.map(d, function( item ) {
-			ui.append("<div> Bus #" + item.busId + " at " + 
-				  dateFormat(processDate(item.arrival),"HH:MM") + "</div>")
+			var appendStr = "<div> Bus #" + item.busId + " at ";
+			var date = processDate(item.arrival) 
+			appendStr += dateFormat(date,"HH:MM");
+			
+			if (timeOffset > 0) {
+			    appendStr += " arriving at destination at " + 
+				dateFormat(new Date(date.getTime() + timeOffset), "HH:MM");
+			}
+
+			appendStr += "</div>";
+
+			ui.append(appendStr);
 
 		    });
 		}});
