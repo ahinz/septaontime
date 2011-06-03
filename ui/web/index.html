@@ -1,6 +1,121 @@
+<!DOCTYPE html5>
 <html>
 	<head>
 	<title>SEPTA Next Bus Info</title>
+	<link rel="stylesheet" href="media/css/main.css" type="text/css" />
+	<link rel="stylesheet" href="media/css/screen.css" type="text/css" media="screen, projection"> 
+	<link rel="stylesheet" href="media/css/print.css" type="text/css" media="print">    
+	<!--[if lt IE 8]><link rel="stylesheet" href="media/css/ie.css" type="text/css" media="screen, projection"><![endif]--> 
+	<script type="text/javascript" src="http://www.google.com/jsapi"></script> 
+	<script type="text/javascript"> google.load("jquery", "1.6.1"); </script> 
+	<script src="media/js/date.js" type="application/x-javascript" charset="utf-8"></script>
+	<script>
+    var URL = "http://adamhinz.com:8080/"
+    var RoutesURL = URL + "route/"
+
+$(function() {
+    $('#station_by_station').change(function(){
+        $('#overlay').fadeIn('fast',function(){
+            $('#box').animate({'top':'160px'},500);
+        });
+    });
+    $('#boxclose').click(function(){
+        $('#box').animate({'top':'-200px'},500,function(){
+            $('#overlay').fadeOut('fast');
+        });
+    });
+
+});
+
+    $(function() {
+	$("#route_by_station").change(function(obj) {
+	    var route = $("#route_by_station option:selected").text()
+	    
+	    $("#bus_header").text("Next " + route + " ");
+
+	    $.ajax({
+		url: RoutesURL + "directions",
+		dataType: 'jsonp',
+		data: {
+		    // Can be grab this from "obj"?
+		    route: route
+		},
+		success: function( d ) {
+		    $("#direction_by_station").removeAttr("disabled");
+		    $.map(d, function( item ) {
+			$("#direction_by_station").append("<option value=\"" + item.route + "__" + item.directionID + "\">" + item.name + "</option>");
+		    });
+		}
+	    });
+	});
+
+	function parseDirValue(value) {
+	    var parts = value.split("__")
+	    return {
+		route: parts[0],
+		direction: parts[1]
+	    };
+	}
+
+	function parseNextValue(dirVal, latlonVal) {
+	    var parts = dirVal.split("__");
+	    var ll = latlonVal.split("__");
+	    return {
+		route: parts[0],
+		direction: parts[1],
+		lat: ll[0],
+		lon: ll[1]
+	    };
+	}
+
+	// Example date string:
+	// 2011-05-18T18:20:00.205Z
+	function processDate(date) {
+	    var mainDateParts = date.split(".")[0].split("T");
+	    var date = mainDateParts[0].split("-");
+	    var time = mainDateParts[1].split(":");
+	    
+	    return new Date(date[0], date[1], date[2], time[0] - 4, time[1]);
+	}
+
+	$("#direction_by_station").change(function(obj) {
+	    $("#bus_header").append($("#direction_by_station option:selected").text());
+
+	    $.ajax({
+		url: RoutesURL + "stations",
+		dataType: 'jsonp',
+		data: parseDirValue($("#direction_by_station option:selected").attr("value")),
+		success: function( d ) {
+		    $("#station_by_station").removeAttr("disabled");
+		    $.map(d.sort( function( a,b ) { return a.name < b.name ? -1 : 1; }) , function( item ) {
+			$("#station_by_station").append("<option value=\"" + item.lat + "__" + item.lon + "\">" + item.name + "</option>");
+		    });
+		}
+	    });
+	});
+
+	$("#station_by_station").change(function(obj) {
+	    $("#bus_header").append(" stopping at " + $("#station_by_station option:selected").text());
+
+	    var values = parseNextValue(
+		$("#direction_by_station option:selected").attr("value"),
+		$("#station_by_station option:selected").attr("value"));
+
+	    $.ajax({
+		url: URL + "next",
+		dataType: 'jsonp',
+		data: values,
+		success: function( d ) {
+		    var ui = $("#bus_times");
+		    $.map(d, function( item ) {
+			ui.append("<li> Bus #" + item.busId + " at " + 
+				  dateFormat(processDate(item.arrival),"HH:MM") + "</li>")
+
+		    });
+		}});
+	});
+    });
+	</script>
 	<script type="text/javascript">
 
 	var _gaq = _gaq || [];
@@ -15,7 +130,67 @@
 
 </script>
 	</head>
-<body>
-	Coming soon - live bus arrival times! 
+<body style="background-color: #F7F7F7">
+
+    <div class="overlay" id="overlay" style="display:none;"></div>
+
+    <div class="box" id="box">
+    <a class="boxclose" id="boxclose"></a>
+    <h1 id="bus_header"></h1>
+    <ul id="bus_times"></ul>
+    </div>
+
+  <div style="height: 20px"></div>
+  <div class="container">
+    <div class="span-24">
+      <h1>SEPTA On Track</h1>
+    </div>
+    <div class="span-24">
+      <h3>This tool uses the SEPTA Live Bus Tracking API to estimate when the next bus will arrive at a given station or time between stations on a given</h3>
+    </div>
+    <div class="span-6 col border-r">
+      <div>Track By Station</div>
+      <div>Route</div>
+      <select id="route_by_station">
+	<option>-</option>
+	<option>44</option>
+      </select>
+      <div>Direction</div>
+      <select id="direction_by_station" disabled="true">
+	<option>---------------</option>
+      </select>
+      <div>Station</div>
+      <select id="station_by_station" disabled="true">
+	<option>---------------</option>
+      </select>
+    </div>
+    <div class="span-6 col border-r">
+      <div>Track by Stop #</div>
+      <input class="text" style="width: 150px">
+    </div>
+    <div class="span-6 col border-r">
+      <div>Time between Stops</div>
+      <div>Route</div>
+      <select>
+	<option>-</option>
+	<option>44</option>
+      </select>
+      <div>Direction</div>
+      <select>
+	<option>---------------</option>
+      </select>
+      <div>Starting Station</div>
+      <select>
+	<option>---------------</option>
+      </select>
+      <div>Ending Station</div>
+      <select>
+	<option>---------------</option>
+      </select>
+    </div>
+    <div class="span-5 col last">
+      Google AdWords Here
+    </div>
+  </div>
 </body>
 </html>
