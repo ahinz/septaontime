@@ -21,6 +21,45 @@ object Worker {
   val ld = new RouteLoader("devdb.db")
   val e = new Estimator()
 
+  // Clearly this code should be A LOT smarter...
+  // TODO: Infer routes that this would work on
+  // then use ALL POSSIBLE intervals from ALL POSSIBLE routes
+  def getTime(start: LatLon, stop: LatLon, routeNum: String, d: Direction) = {
+    // We are just going to fake a bus record for the starting stop
+    val fakeBus = List(BusRecord(start.lat.toString,start.lon.toString,"","","",d.septa,"","0"))
+
+    println("* About to esimate the time from " + start + " to " + stop + " on " + routeNum + " going " + d);
+    val rts = ld.loadRoutes(Map("shortname" -> routeNum, "direction" -> d.db))
+
+    println("* Found " + rts.length + " routes at this station")
+
+    val intervals = rts.flatMap(r => ld.loadIntervals(r.id))
+
+    // Get the time between the start (as a "bus") to the finish point
+    // using all possible intervals from the route
+    val pts:List[Either[String,List[BusEst]]] = rts.map(r => {
+      println("  ** Processing route " + r)
+      e.estimateNextBus(
+        stop, 
+        ld.loadRoutePoints(Map("route_id" -> r.id.toString)),
+        fakeBus,
+        intervals)
+    })
+
+    println("* Done processing!")
+
+    val finalEst:List[BusEst] = pts.filter(_.isRight).map(_.right.get).flatten
+
+    // Remove duplciates:
+    //TODO: This should be moved to the estimateNextBus method
+    write(finalEst.groupBy(x => x.blockId + "." + x.busId).map(k => k._2.head).toList.sortWith(
+      _.arrival.getTime > _.arrival.getTime) match {
+      case x::xs => Map("arrival" -> x.arrival)
+      case _ => Map[String,String]()
+    })
+
+  }
+
   def getEstimates(station: LatLon, routeNum: String, d: Direction) = {
     println("* About to esimate next bus on route " + routeNum + " leaving from " + station)
     val rts = ld.loadRoutes(Map("shortname" -> routeNum, "direction" -> d.db))
@@ -30,8 +69,7 @@ object Worker {
     // Grab live data for this route
     val live = LiveDataLoader.getMostRecentLiveData(routeNum).filter(_.Direction == d.septa)
     println("* Found " + live.length + " possible enroute buses")
-    
-    
+
     // Grab estimates for each route:
     val pts:List[Either[String,List[BusEst]]] = rts.map(r => {
       println("  ** Processing route " + r)
@@ -89,6 +127,20 @@ trait HelloServiceBuilder extends ServiceBuilder {
             _.complete(
               jsonp(callback,
                    Worker.getEstimates(LatLon(lat.toDouble, lon.toDouble), route, directionForString(direction).get)))
+          }
+      }
+    } ~ path("time" / "[^/]*".r / "[^/]*".r) {
+      (route,direction) =>
+      parameters('callback ?, 'lat1, 'lon1, 'lat2, 'lon2) {
+        (callback, lat1, lon1, lat2, lon2) =>
+          get {
+            _.complete(
+              jsonp(callback,
+                    Worker.getTime(
+                      LatLon(lat1.toDouble,lon1.toDouble),
+                      LatLon(lat2.toDouble, lon2.toDouble),
+                      route,
+                      directionForString(direction).get)))
           }
       }
     }
