@@ -4,6 +4,7 @@ import java.sql.{Array => SqlArray,Date => SqlDate,_}
 import java.util.Date
 import java.text._
 
+import scala.annotation.tailrec
 
 /**
  * Route Loader is responsible for loading routes and other objects
@@ -23,8 +24,9 @@ class RouteLoader(db: String) {
     }
     t
   }
-  
-  def exhaustResultSet[T](r: ResultSet, f:(ResultSet => T), acc:List[T]=Nil):List[T] =
+
+  @tailrec
+  final def exhaustResultSet[T](r: ResultSet, f:(ResultSet => T), acc:List[T]=Nil):List[T] =
     if (r.next())
       exhaustResultSet(r, f, f(r) :: acc)
     else
