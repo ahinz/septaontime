@@ -22,6 +22,22 @@ import org.hinz.gis._
  */
 case class BusData(id: Int, route: String, lat: Double, lon:Double, time: Date, block: String, bus: String)
 
+/**
+ * Information about when a block rotates from one route to another
+ * (i.e. from '44 to Ardmore' to '44 to 5th and Market')
+ */
+case class BlockRotate(block: String, time: Date, fromRoute: String, toRoute: String)
+
+/**
+ * Information about a given block
+ *
+ * @param block the block # for this block
+ * @param route the route number that this block drives on
+ * @param start the earliest this block has been seen
+ * @param stop the latest this block has been seen
+ */
+case class BlockInfo(block: String, route: String, start: Date, stop:Date, rotations:List[BlockRotate])
+
 // Direction of the route
 // db -> string stored in the database (n,s,...)
 // septa -> septa string (SouthBound,NorthBound,...)
@@ -65,6 +81,10 @@ case class Interval(id: Int, route_id:Int, bus_data_id1:Int, bus_data_id2:Int,
                     start: Double, end: Double, recordedAt:Date, time: Double) {
 
   def velocity = (end - start)/time
+
+  def overlaps(i: Interval) =
+    (i.start >= start && i.start <= end) ||
+    (i.end >= start && i.end <= end)
 
   def samePoints(i: Interval) = 
     U.dblCompare(i.start,start) && U.dblCompare(i.end,end)
