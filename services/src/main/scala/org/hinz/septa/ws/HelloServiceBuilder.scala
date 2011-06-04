@@ -43,7 +43,7 @@ object Worker {
         stop, 
         ld.loadRoutePoints(Map("route_id" -> r.id.toString)),
         fakeBus,
-        intervals)
+        ld.loadIntervals(r.id))
     })
 
     println("* Done processing!")
