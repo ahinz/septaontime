@@ -128,7 +128,7 @@ case class Interval(id: Int, route_id:Int, bus_data_id1:Int, bus_data_id2:Int,
     else
       throw new Exception("Cannot split " + toString + " on " + d)
 
-  override def toString = "[" + start + ", " + end + " (" + time +")]"
+  override def toString = "[" + start + ", " + end + " (" + time +" / " + recordedAt + ")]"
 
 
 }

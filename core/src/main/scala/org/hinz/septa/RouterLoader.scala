@@ -48,16 +48,16 @@ class RouteLoader(db: String) {
   // Sun May 08 17:13:07 EDT 2011
   val format = new SimpleDateFormat("EEE MMM dd HH:mm:ss z yyyy")
 
-  private def buildInterval(rs: ResultSet) =
+  def buildInterval(rs: ResultSet) =
     Interval(rs.getInt("id"), rs.getInt("route_id"), rs.getInt("route_data_id1"),rs.getInt("route_data_id2"),rs.getDouble("start_ref"),rs.getDouble("end_ref"),format.parse(rs.getString("recordedAt")),rs.getDouble("time"))
 
-  private def buildBusData(rs: ResultSet) =
+  def buildBusData(rs: ResultSet) =
     BusData(rs.getInt("id"), rs.getString("route"), rs.getDouble("lat"),
             rs.getDouble("lon"),format.parse(rs.getString("recorded_at")), 
             rs.getString("blocknum"),rs.getString("busnum"))
   
 
-  private def buildRoutePoint(rs: ResultSet) =
+  def buildRoutePoint(rs: ResultSet) =
     RoutePoint(rs.getInt("id"), rs.getInt("route_id"), rs.getDouble("lat"),
                rs.getDouble("lon"), rs.getDouble("ref"))
 

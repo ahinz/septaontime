@@ -15,11 +15,49 @@ import Actor._
 import net.liftweb.json._
 import net.liftweb.json.Serialization._
 
+case class PEstInterval(pts: List[LatLon], ival: EstInterval)
+
 object Worker {
   implicit val formats = Serialization.formats(NoTypeHints)
 
   val ld = new RouteLoader("devdb.db")
   val e = new Estimator()
+
+  def inner(start: Double, stop: Double, routeId: Int) = 
+    ld.loadWithBuilder("select * from route_data where ref > " + start + " and ref < " + stop + " and route_id = " + routeId, ld.buildRoutePoint _).map(x => LatLon(x.lat,x.lon))
+
+  def interpll(dist: Double, routeId: Int) = {
+    val start_list = ld.loadWithBuilder("select * from route_data where ref > " + dist + " and route_id = " + routeId + " limit 1", ld.buildRoutePoint _)
+    val stop_list = ld.loadWithBuilder("select * from route_data where ref < " + dist + " and route_id = " + routeId + " order by ref desc limit 1", ld.buildRoutePoint _)
+
+    if (start_list.length == 0)
+      LatLon(stop_list.head.lat, stop_list.head.lon)
+    else if (stop_list.length == 0)
+      LatLon(start_list.head.lat, start_list.head.lon)
+    else {
+      // Figure out pct dist
+      val start = start_list.head
+      val stop = stop_list.head
+      val totalDist = stop.ref - start.ref
+      val diff = dist - start.ref
+      val pct = diff / totalDist
+
+      LatLon(start.lat + (stop.lat - start.lat) * pct, start.lon + (stop.lon - start.lon) * pct)
+    }
+  }
+
+  def fillOut(routeId: Int, ival: EstInterval):PEstInterval = {
+    PEstInterval(List(List(interpll(ival.startDist, routeId)), inner(ival.startDist, ival.endDist, routeId), List(interpll(ival.endDist, routeId))).flatten, ival)
+  }
+  
+  def fillOut(routeId: Int, ivals: List[EstInterval]):List[PEstInterval] = ivals.map(fillOut(routeId, _))
+
+  def getIntervals(routeId: Int) = {
+    val intervals = ld.loadIntervals(routeId)
+    val max = intervals.map(_.end).max
+
+    write(fillOut(routeId, e.buildEstIntervals(0, max, intervals, 0.05, 3)))
+  }
 
   // Clearly this code should be A LOT smarter...
   // TODO: Infer routes that this would work on
@@ -147,7 +185,16 @@ trait HelloServiceBuilder extends ServiceBuilder {
   }
 
   val routeService = {
-
+    path("interval") {
+      parameters('callback ?, 'route_id) {
+        (callback, route_id) =>
+          get {
+            _.complete(
+              jsonp(callback,
+                    Worker.getIntervals(route_id.toInt)))
+          }
+      }
+    } ~
     pathPrefix("route") {
       path("routes") {
         parameter('callback ?) {

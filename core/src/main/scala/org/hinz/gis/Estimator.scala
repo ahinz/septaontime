@@ -14,6 +14,7 @@ case class BusEst(blockId: String, busId: String, station: LatLon, origOffset: D
   def arrival(v: Date):BusEst = BusEst(blockId, busId, station, origOffset, offset, v)
 }
 
+case class EstInterval(startDist: Double, endDist: Double, samples: Int, v: Double, t: Double, dates: List[Date])
 
 /**
  * Used to estimate time between two distance points based
@@ -24,6 +25,25 @@ case class BusEst(blockId: String, busId: String, station: LatLon, origOffset: D
  * and computes an estimate time for that interval
  */
 class Estimator { 
+
+  @tailrec
+  final def buildEstIntervals(startDist: Double, endDist: Double, intervals:List[Interval], segSize: Double, takeSize: Int, ests: List[EstInterval] = Nil):List[EstInterval] =
+    if (startDist >= endDist) ests.reverse
+    else {
+      val thisInterval = (startDist,startDist+segSize)
+      val inRange = intervals.filter(x => x.start <= thisInterval._2 && x.end >= thisInterval._1)
+
+      val sortedRange = inRange.sortWith { (a,b) =>
+        a.recordedAt.compareTo(b.recordedAt) > 0 }
+
+      // Compute an average speed:
+      val dataPoints = sortedRange.map(_.velocity).take(takeSize)
+      val spd = dataPoints.reduceLeft(_ + _) / dataPoints.size
+      val combd = segSize / spd
+
+      val est = EstInterval(startDist,startDist+segSize, dataPoints.length, spd*1000.0, combd, sortedRange.take(takeSize).map(_.recordedAt))
+      buildEstIntervals(thisInterval._2, endDist, intervals, segSize, takeSize, est :: ests)
+    }
 
   /**
    *
