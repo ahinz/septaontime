@@ -12,7 +12,14 @@ object Main {
   @tailrec
   def executeEvery(msec: Int, f: Unit => Unit):Unit = {
     val cur = time
-    f()
+    try {
+      f()
+    } catch {
+      case e: Exception => {
+        e.printStackTrace()
+        Thread.sleep(1000*60*5) // Sleep 5 minutes in case of error
+      }
+    }
     Thread.sleep(msec - (time - cur))
     executeEvery(msec,f)
   }
