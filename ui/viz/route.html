@@ -5,7 +5,6 @@
 <style type="text/css">
   html { height: 100% }
   body { height: 100%; margin: 0px; padding: 0px }
-  #map_canvas { height: 100% }
 </style>
 <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.6.1/jquery.js"></script>
 <script type="text/javascript"
@@ -26,7 +25,7 @@ $(function() {
         myOptions);
 
 
-    url = "http://localhost:8080/interval?route_id=1"
+    url = "http://localhost:8080/interval"; //?route_id=1&seg_size_km=0.1&num_segs=4"
 
     function mk_color( mph ) {
 	if (mph < 15) {
@@ -35,58 +34,83 @@ $(function() {
 	    return "#" + Math.floor((mph/50.0)*255.0).toString(16) + "FF00";
 	}
     }
-	    
 
-    $.ajax({
-	dataType: 'jsonp',
-	url: url,
-	success: function( json ) {
-	    var color1 = "#FF0000";
-	    var color2 = "#0000FF";
-	    var color = color1;
-	    var w = 3;
+    var map_items = [];
+    
+    $("#run").submit(function() {
+	$.map(map_items, function( map_item ) {
+	    map_item.setMap(null);
+	    map_item = null;
+	});
 
-	    $.map(json, function( pt ) {
-		if (w == 3) {
-		    alert(mk_color(pt.ival.v * 2.23693629));
-		}
+	map_items = [];
 
-		if (color == color1) {
-		    color = color2;
-		    w = 4;
-		} else {
-		    color = color1;
-		    w = 2;
-		}
-
-		var slat = pt.pts[0].lat
-		var slon = pt.pts[0].lon
-
-		new google.maps.Marker({
-		    position: new google.maps.LatLng(slat,slon),
-		    title: (pt.ival.v * 2.23693629) + " mph"
-//		    map: map
+	$.ajax({
+	    dataType: 'jsonp',
+	    url: url,
+	    data: {
+		route_id: $("#route_id").val(),
+		seg_size_km: $("#seg_size").val(),
+		num_segs: $("#seg_num").val()
+	    },
+	    success: function( json ) {
+		var color1 = "#FF0000";
+		var color2 = "#0000FF";
+		var color = color1;
+		var w = 3;
+		
+		$.map(json, function( pt ) {
+		    if (color == color1) {
+			color = color2;
+			w = 4;
+		    } else {
+			color = color1;
+			w = 2;
+		    }
+		    
+		    var slat = pt.pts[0].lat
+		    var slon = pt.pts[0].lon
+		    
+		    new google.maps.Marker({
+			position: new google.maps.LatLng(slat,slon),
+			title: (pt.ival.v * 2.23693629) + " mph"
+			//		    map: map
 		});
 
 		var pts = $.map(pt.pts, function( ll ) {
 		    return new google.maps.LatLng(ll.lat, ll.lon);
 		});
-		
-
-		new google.maps.Polyline({
-		    path: pts,
-		    strokeColor: mk_color(pt.ival.v * 2.23693629),
-		    strokeOpacity: '1.0',
-		    strokeWeight: w,
-		    map: map
+		    
+		    map_items.push( 
+			new google.maps.Polyline({
+			    path: pts,
+			    strokeColor: mk_color(pt.ival.v * 2.23693629),
+			    strokeOpacity: '1.0',
+			    strokeWeight: w,
+			    map: map
+			})
+		    );
 		});
-	    });
-	}
+	    }
+	});
+
+	return false;
     });
 });
 </script>
 </head>
 <body onload="initialize()">
-  <div id="map_canvas" style="width:100%; height:100%"></div>
+  <div style="float:left">
+    <div>Create Model</div>
+    <form id="run">
+      <table>
+	<tr><td>Route ID</td><td><input type="text" id="route_id" value="2"></td></tr>
+	<tr><td>Size of Summary Segment (km)</td><td><input type="text" id="seg_size" value="0.1"></td></tr>
+	<tr><td>Number of intervals per segment</td><td><input type="text" id="seg_num" value="5"></td></tr>
+      </table>
+      <input type="submit" value="Run">
+    </form>
+  </div>
+  <div id="map_canvas" style="float:right; width:700px; height:700px"></div>
 </body>
 </html>

@@ -52,11 +52,11 @@ object Worker {
   
   def fillOut(routeId: Int, ivals: List[EstInterval]):List[PEstInterval] = ivals.map(fillOut(routeId, _))
 
-  def getIntervals(routeId: Int) = {
+  def getIntervals(routeId: Int, segSizeKm: Double = 0.1, numSegs: Int = 3) = {
     val intervals = ld.loadIntervals(routeId)
     val max = intervals.map(_.end).max
 
-    write(fillOut(routeId, e.buildEstIntervals(0, max, intervals, 0.05, 3)))
+    write(fillOut(routeId, e.buildEstIntervals(0, max, intervals, segSizeKm, numSegs)))
   }
 
   // Clearly this code should be A LOT smarter...
@@ -186,12 +186,12 @@ trait HelloServiceBuilder extends ServiceBuilder {
 
   val routeService = {
     path("interval") {
-      parameters('callback ?, 'route_id) {
-        (callback, route_id) =>
+      parameters('callback ?, 'route_id, 'seg_size_km, 'num_segs) {
+        (callback, route_id, seg_size_km, num_segs) =>
           get {
             _.complete(
               jsonp(callback,
-                    Worker.getIntervals(route_id.toInt)))
+                    Worker.getIntervals(route_id.toInt, seg_size_km.toDouble, num_segs.toInt)))
           }
       }
     } ~
