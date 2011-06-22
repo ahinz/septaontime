@@ -10,6 +10,21 @@ case class LatLon(lat:Double,lon:Double) {
   def toPoint2D = new Point2D.Double(lon,lat)
 }
 
+/**
+ * Parameters to the estimation model
+ *
+ * @param route The db id of the route to estimate
+ * @param summarySegmentSizeKm The size of segment to summarize
+ * @param maxNumberOfIntervals The maximum number of intervals to use for a given segment
+ * @param startDate Start date of intervals
+ * @param endDate Last date to use (specify None to use most up-to-date value)
+ * @param upperTimeBound earliest hour/minute to use
+ * @Param lowerTimeBound latest hour/minute to use
+ */
+case class Model(route: Int, summarySegmentSizeKm: Double, maxNumberOfIntervals: Int, startDate: Date, endDate: Option[Date], upperTimeBound: Date, lowerTimeBound: Date) {
+  
+}
+
 case class BusEst(blockId: String, busId: String, station: LatLon, origOffset: Double, offset: Double, arrival: Date) {
   def arrival(v: Date):BusEst = BusEst(blockId, busId, station, origOffset, offset, v)
 }
