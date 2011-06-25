@@ -19,21 +19,25 @@ case class LatLon(lat:Double,lon:Double) {
  * @param startDate Start date of intervals
  * @param endDate Last date to use (specify None to use most up-to-date value)
  * @param upperTimeBound earliest hour/minute to use
- * @Param lowerTimeBound latest hour/minute to use
+ * @param lowerTimeBound latest hour/minute to use
+ * @param startDist distance to start at
+ * @param endDist distance to finish at or None for the entire route
  */
-case class Model(route: Int, summarySegmentSizeKm: Double, maxNumberOfIntervals: Int, startDate: Date, endDate: Option[Date], lowerTimeBound: Date, upperTimeBound: Date) {
+case class Model(route: Int, summarySegmentSizeKm: Double, maxNumberOfIntervals: Int, startDate: Date, endDate: Option[Date], lowerTimeBound: Date, upperTimeBound: Date, startDist: Double, endDist: Option[Double]) {
 
   var ivalCache:Option[List[Interval]] = None
 
   //@todo: Test Me
-  def createOutputIntervals(endDist: Double):List[(Double,Double)] = {
-    val pts = (0 to (endDist / summarySegmentSizeKm).toInt).toList.map(_.toDouble * summarySegmentSizeKm) ++ List(endDist)
+  def createOutputIntervals(ld: RouteLoader):List[(Double,Double)] = {
+    val end:Double = endDist match {
+      case Some(end) => end
+      case None => loadIntervalsForModel(ld).map(_.end).max(Ordering[Double])
+    }
+
+    val pts = (0 to (end / summarySegmentSizeKm).toInt).toList.map(_.toDouble * summarySegmentSizeKm) ++ List(end)
 
     pts.zip(pts.tail)
   }
-
-  def maxDist(ld: RouteLoader): Double =
-    loadIntervalsForModel(ld).map(_.end).max(Ordering[Double])
 
   //@todo: Test Me
   def loadIntervalsForModel(ld: RouteLoader): List[Interval] = ivalCache match {
@@ -119,7 +123,7 @@ class Estimator {
 
   //@todo test me!
   def estimateIntervals(m: List[Model], ld: RouteLoader):List[EstInterval] =
-    estimateIntervals(m.head.createOutputIntervals(m.head.maxDist(ld)),
+    estimateIntervals(m.head.createOutputIntervals(ld),
 		      m.map(_.loadIntervalsForModel(ld)),
 		      m.head.maxNumberOfIntervals)
 

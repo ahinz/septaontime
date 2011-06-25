@@ -70,7 +70,7 @@ object Worker {
     cal.set(Calendar.MINUTE, 59)
     val midnight_pm = cal.getTime()
 
-    val model = Model(routeId, segSizeKm, numSegs, yesterday, Some(today),  midnight_am, midnight_pm)
+    val model = Model(routeId, segSizeKm, numSegs, yesterday, Some(today),  midnight_am, midnight_pm, 0, None)
 
     write(fillOut(routeId, e.estimateIntervals(model, ld)))
   }
