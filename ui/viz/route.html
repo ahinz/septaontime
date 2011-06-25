@@ -25,13 +25,26 @@ $(function() {
         myOptions);
 
 
-    url = "http://localhost:8080/interval"; //?route_id=1&seg_size_km=0.1&num_segs=4"
+    url = "http://adamhinz.com:8080/interval"; //url = "http://localhost:8080/interval"; //?route_id=1&seg_size_km=0.1&num_segs=4"
 
     function mk_color( mph ) {
-	if (mph < 15) {
-	    return "#FF" + Math.floor((mph/15.0)*255.0).toString(16) + "00";
+	var greenpt = 50; // Point at which all values above are green
+	var midpt = greenpt / 2.0;
+	if (mph < midpt) {
+	    return "#FF" + pad2(Math.floor((mph/midpt)*255.0).toString(16)) + "00";
+	} else if (mph > greenpt) {
+	    return "#00FF00";
 	} else {
-	    return "#" + Math.floor((mph/50.0)*255.0).toString(16) + "FF00";
+	    var clr = (1.0 - mph/greenpt)*255.0;
+	    return "#" + pad2(Math.floor(clr).toString(16)) + "FF00";
+	}
+    }
+
+    function pad2(str) {
+	if (str.length < 2) {
+	    return "0" + str;
+	} else {
+	    return str;
 	}
     }
 
@@ -80,13 +93,15 @@ $(function() {
 		var pts = $.map(pt.pts, function( ll ) {
 		    return new google.maps.LatLng(ll.lat, ll.lon);
 		});
-		    
+		    var mph = pt.ival.v * 2.23693629
+
 		    map_items.push( 
 			new google.maps.Polyline({
 			    path: pts,
-			    strokeColor: mk_color(pt.ival.v * 2.23693629),
+			    strokeColor: mk_color(mph),
 			    strokeOpacity: '1.0',
 			    strokeWeight: w,
+			    title: mph + " mph",
 			    map: map
 			})
 		    );

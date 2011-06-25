@@ -15,6 +15,8 @@ import Actor._
 import net.liftweb.json._
 import net.liftweb.json.Serialization._
 
+import java.util.{Date,Calendar}
+
 case class PEstInterval(pts: List[LatLon], ival: EstInterval)
 
 object Worker {
@@ -53,11 +55,26 @@ object Worker {
   def fillOut(routeId: Int, ivals: List[EstInterval]):List[PEstInterval] = ivals.map(fillOut(routeId, _))
 
   def getIntervals(routeId: Int, segSizeKm: Double = 0.1, numSegs: Int = 3) = {
-    val intervals = ld.loadIntervals(routeId)
-    val max = intervals.map(_.end).max
+    // 24 hours of coverage
+    val oneDay = 1000 * 60 * 60 * 24
+    val today = new Date()
+    val yesterday = new Date(today.getTime() - oneDay)
+    val cal = Calendar.getInstance()
 
-    write(fillOut(routeId, e.buildEstIntervals(0, max, intervals, segSizeKm, numSegs)))
+    cal.set(Calendar.HOUR_OF_DAY, 0)
+    cal.set(Calendar.MINUTE, 0)
+    
+    val midnight_am = cal.getTime()
+
+    cal.set(Calendar.HOUR_OF_DAY, 23)
+    cal.set(Calendar.MINUTE, 59)
+    val midnight_pm = cal.getTime()
+
+    val model = Model(routeId, segSizeKm, numSegs, yesterday, Some(today),  midnight_am, midnight_pm)
+
+    write(fillOut(routeId, e.estimateIntervals(model, ld)))
   }
+	
 
   // Clearly this code should be A LOT smarter...
   // TODO: Infer routes that this would work on

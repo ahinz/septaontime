@@ -1,7 +1,7 @@
 package org.hinz.gis
 
 import org.hinz.septa._
-import java.util.Date
+import java.util.{Date,Calendar}
 import java.awt.geom.Point2D
 
 import scala.annotation.tailrec
@@ -21,15 +21,64 @@ case class LatLon(lat:Double,lon:Double) {
  * @param upperTimeBound earliest hour/minute to use
  * @Param lowerTimeBound latest hour/minute to use
  */
-case class Model(route: Int, summarySegmentSizeKm: Double, maxNumberOfIntervals: Int, startDate: Date, endDate: Option[Date], upperTimeBound: Date, lowerTimeBound: Date) {
-  
+case class Model(route: Int, summarySegmentSizeKm: Double, maxNumberOfIntervals: Int, startDate: Date, endDate: Option[Date], lowerTimeBound: Date, upperTimeBound: Date) {
+
+  var ivalCache:Option[List[Interval]] = None
+
+  //@todo: Test Me
+  def createOutputIntervals(endDist: Double):List[(Double,Double)] = {
+    val pts = (0 to (endDist / summarySegmentSizeKm).toInt).toList.map(_.toDouble * summarySegmentSizeKm) ++ List(endDist)
+
+    pts.zip(pts.tail)
+  }
+
+  def maxDist(ld: RouteLoader): Double =
+    loadIntervalsForModel(ld).map(_.end).max(Ordering[Double])
+
+  //@todo: Test Me
+  def loadIntervalsForModel(ld: RouteLoader): List[Interval] = ivalCache match {
+    case Some(cache) => cache
+    case None => {
+      val intervals = ld.loadIntervals(route).filter(i => isInTimeRange(i.recordedAt, lowerTimeBound, upperTimeBound))
+      
+      var finalIntervals = endDate match {
+	case Some(date) => intervals.filter(i => isInDateRange(i.recordedAt, startDate, date))
+	case None => intervals
+      }
+      
+      ivalCache = Some(finalIntervals.sortWith { (a,b) =>
+	a.recordedAt.compareTo(b.recordedAt) > 0 })
+
+      ivalCache.get
+    }
+  }
+
+  //@todo: Test Me
+  def isInDateRange(d: Date, startDate: Date, endDate:Date):Boolean =
+    d.getTime() <= endDate.getTime() && d.getTime() >= startDate.getTime()
+
+  //@todo: Test Me
+  def isInTimeRange(date: Date, startTime: Date, endTime:Date):Boolean = {
+    var startTimeCal = Calendar.getInstance()
+    startTimeCal.setTime(startTime)
+    var endTimeCal = Calendar.getInstance()
+    endTimeCal.setTime(endTime)
+    var dCal = Calendar.getInstance()
+    dCal.setTime(date)
+
+    var start = startTimeCal.get(Calendar.HOUR_OF_DAY) + startTimeCal.get(Calendar.MINUTE) / 60.0
+    var end = endTimeCal.get(Calendar.HOUR_OF_DAY) + endTimeCal.get(Calendar.MINUTE) / 60.0
+    var d = dCal.get(Calendar.HOUR_OF_DAY) + dCal.get(Calendar.MINUTE) / 60.0
+
+    d <= end && d >= start
+  }
 }
 
 case class BusEst(blockId: String, busId: String, station: LatLon, origOffset: Double, offset: Double, arrival: Date) {
   def arrival(v: Date):BusEst = BusEst(blockId, busId, station, origOffset, offset, v)
 }
 
-case class EstInterval(startDist: Double, endDist: Double, samples: Int, v: Double, t: Double, dates: List[Date])
+case class EstInterval(startDist: Double, endDist: Double, v: List[Double], t: List[Double])
 
 /**
  * Used to estimate time between two distance points based
@@ -41,24 +90,44 @@ case class EstInterval(startDist: Double, endDist: Double, samples: Int, v: Doub
  */
 class Estimator { 
 
-  @tailrec
-  final def buildEstIntervals(startDist: Double, endDist: Double, intervals:List[Interval], segSize: Double, takeSize: Int, ests: List[EstInterval] = Nil):List[EstInterval] =
-    if (startDist >= endDist) ests.reverse
-    else {
-      val thisInterval = (startDist,startDist+segSize)
-      val inRange = intervals.filter(x => x.start <= thisInterval._2 && x.end >= thisInterval._1)
+  //@todo test me!
+  //@todo weighted average
+  def getSpeedAndTime(takeSize: Int, dist: Double, ivals: List[Interval]) = {
+    val dataPoints = ivals.map(_.velocity).take(takeSize)
+    val spd = dataPoints.reduceLeft(_ + _) / dataPoints.size
+    val time = dist / spd
+    (spd, time)
+  }
 
-      val sortedRange = inRange.sortWith { (a,b) =>
-        a.recordedAt.compareTo(b.recordedAt) > 0 }
 
-      // Compute an average speed:
-      val dataPoints = sortedRange.map(_.velocity).take(takeSize)
-      val spd = dataPoints.reduceLeft(_ + _) / dataPoints.size
-      val combd = segSize / spd
+  //@todo test me!
+  def estimateInterval(interval: (Double, Double), allIntervals: List[List[Interval]], takeSize: Int):EstInterval = {
 
-      val est = EstInterval(startDist,startDist+segSize, dataPoints.length, spd*1000.0, combd, sortedRange.take(takeSize).map(_.recordedAt))
-      buildEstIntervals(thisInterval._2, endDist, intervals, segSize, takeSize, est :: ests)
-    }
+    val dist = interval._2 - interval._1
+
+    //@todo Weighted avg
+    val spdAndTimes = allIntervals.map(intervals => getSpeedAndTime(takeSize, dist, intervals.filter(x => x.start <= interval._2 && x.end >= interval._1)))
+
+    EstInterval(interval._1, 
+		interval._2, 
+		spdAndTimes.map(_._1 * 1000.0),
+		spdAndTimes.map(_._2))		
+  }
+
+  def estimateIntervals(m: Model, ld: RouteLoader):List[EstInterval] =
+    estimateIntervals(List(m), ld)
+
+  //@todo test me!
+  def estimateIntervals(m: List[Model], ld: RouteLoader):List[EstInterval] =
+    estimateIntervals(m.head.createOutputIntervals(m.head.maxDist(ld)),
+		      m.map(_.loadIntervalsForModel(ld)),
+		      m.head.maxNumberOfIntervals)
+
+
+
+  def estimateIntervals(targetIntervals: List[(Double,Double)], measuredIntervals: List[List[Interval]], takeSize: Int) =
+    targetIntervals.map(tgt => estimateInterval(tgt, measuredIntervals, takeSize))
+
 
   /**
    *

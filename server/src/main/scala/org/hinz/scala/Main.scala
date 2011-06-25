@@ -20,7 +20,11 @@ object Main {
         Thread.sleep(1000*60*5) // Sleep 5 minutes in case of error
       }
     }
-    Thread.sleep(msec - (time - cur))
+    val sleepTime = msec - (time - cur)
+
+    if (sleepTime > 0)
+       Thread.sleep(sleepTime)
+
     executeEvery(msec,f)
   }
 
