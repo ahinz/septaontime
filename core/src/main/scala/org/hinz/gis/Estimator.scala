@@ -23,39 +23,23 @@ case class LatLon(lat:Double,lon:Double) {
  * @param startDist distance to start at
  * @param endDist distance to finish at or None for the entire route
  */
-case class Model(route: Int, summarySegmentSizeKm: Double, maxNumberOfIntervals: Int, startDate: Date, endDate: Option[Date], lowerTimeBound: Date, upperTimeBound: Date, startDist: Double, endDist: Option[Double]) {
+case class Model(route: Int, summarySegmentSizeKm: Double, maxNumberOfIntervals: Int, dateRange:(Date,Option[Date]), timeRange:(Date,Date), distRange:(Double,Double))
+{
 
-  var ivalCache:Option[List[Interval]] = None
+  def copyWithNewDistances(nstart: Double, nend:Double) =
+    Model(route, summarySegmentSizeKm, maxNumberOfIntervals, dateRange, timeRange, distRange)
 
   //@todo: Test Me
-  def createOutputIntervals(ld: RouteLoader):List[(Double,Double)] = {
-    val end:Double = endDist match {
-      case Some(end) => end
-      case None => loadIntervalsForModel(ld).map(_.end).max(Ordering[Double])
-    }
-
-    val pts = (0 to (end / summarySegmentSizeKm).toInt).toList.map(_.toDouble * summarySegmentSizeKm) ++ List(end)
+  def createOutputIntervals():List[(Double,Double)] = {
+    val pts = (0 to ((distRange._2 - distRange._1) / summarySegmentSizeKm).toInt).toList.map(distRange._1 + _.toDouble * summarySegmentSizeKm) ++ List(distRange._2)
 
     pts.zip(pts.tail)
   }
 
-  //@todo: Test Me
-  def loadIntervalsForModel(ld: RouteLoader): List[Interval] = ivalCache match {
-    case Some(cache) => cache
-    case None => {
-      val intervals = ld.loadIntervals(route).filter(i => isInTimeRange(i.recordedAt, lowerTimeBound, upperTimeBound))
-      
-      var finalIntervals = endDate match {
-	case Some(date) => intervals.filter(i => isInDateRange(i.recordedAt, startDate, date))
-	case None => intervals
-      }
-      
-      ivalCache = Some(finalIntervals.sortWith { (a,b) =>
-	a.recordedAt.compareTo(b.recordedAt) > 0 })
-
-      ivalCache.get
-    }
-  }
+  //@todo test me
+  def usesInterval(ival: Interval) =
+    (!dateRange._2.isDefined || isInDateRange(ival.recordedAt, dateRange._1, dateRange._2.get)) &&
+    isInTimeRange(ival.recordedAt, timeRange._1, timeRange._2)
 
   //@todo: Test Me
   def isInDateRange(d: Date, startDate: Date, endDate:Date):Boolean =
@@ -96,17 +80,20 @@ class Estimator {
 
   //@todo test me!
   //@todo weighted average
-  def getSpeedAndTime(takeSize: Int, dist: Double, ivals: List[Interval]) = {
-    val dataPoints = ivals.map(_.velocity).take(takeSize)
-    val spd = dataPoints.reduceLeft(_ + _) / dataPoints.size
-    val time = dist / spd
-    (spd, time)
+  def getSpeedAndTime(takeSize: Int, dist: Double, ivals: List[Interval]):(Double,Double) = {
+    if (ivals.size == 0) // No Data... not sure what to do here?
+      (0, dist / 10.0) // just guess 10 mph.
+    else {
+      val dataPoints = ivals.map(_.velocity).take(takeSize)
+      val spd = dataPoints.reduceLeft(_ + _) / dataPoints.size
+      val time = dist / spd
+      (spd, time)
+    }
   }
 
 
   //@todo test me!
   def estimateInterval(interval: (Double, Double), allIntervals: List[List[Interval]], takeSize: Int):EstInterval = {
-
     val dist = interval._2 - interval._1
 
     //@todo Weighted avg
@@ -118,20 +105,20 @@ class Estimator {
 		spdAndTimes.map(_._2))		
   }
 
-  def estimateIntervals(m: Model, ld: RouteLoader):List[EstInterval] =
-    estimateIntervals(List(m), ld)
+  def estimateIntervals(m: Model, intervals: List[Interval]):List[EstInterval] =
+    estimateIntervals(List(m), intervals)
 
   //@todo test me!
-  def estimateIntervals(m: List[Model], ld: RouteLoader):List[EstInterval] =
-    estimateIntervals(m.head.createOutputIntervals(ld),
-		      m.map(_.loadIntervalsForModel(ld)),
+  def estimateIntervals(m: List[Model], intervals: List[Interval]):List[EstInterval] =
+    estimateIntervals(m.head.createOutputIntervals(),
+		      m.map(model => intervals.filter(model.usesInterval(_))),
 		      m.head.maxNumberOfIntervals)
 
 
 
-  def estimateIntervals(targetIntervals: List[(Double,Double)], measuredIntervals: List[List[Interval]], takeSize: Int) =
+  def estimateIntervals(targetIntervals: List[(Double,Double)], measuredIntervals: List[List[Interval]], takeSize: Int) = {
     targetIntervals.map(tgt => estimateInterval(tgt, measuredIntervals, takeSize))
-
+  }
 
   /**
    *
