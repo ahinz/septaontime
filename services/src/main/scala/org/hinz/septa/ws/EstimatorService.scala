@@ -100,6 +100,7 @@ object Worker {
         stop, 
         ld.loadRoutePoints(Map("route_id" -> r.id.toString)),
         fakeBus,
+	Model.baseline(r.id),
         ld.loadIntervals(r.id))
     })
 
@@ -110,7 +111,7 @@ object Worker {
     // Remove duplciates:
     //TODO: This should be moved to the estimateNextBus method
     write(finalEst.groupBy(x => x.blockId + "." + x.busId).map(k => k._2.head).toList.sortWith(
-      _.arrival.getTime > _.arrival.getTime) match {
+      _.arrival.head.getTime > _.arrival.head.getTime) match {
       case x::xs => Map("arrival" -> x.arrival)
       case _ => Map[String,String]()
     })
@@ -134,6 +135,7 @@ object Worker {
         station, 
         ld.loadRoutePoints(Map("route_id" -> r.id.toString)),
         live,
+	Model.baseline(r.id),
         ld.loadIntervals(r.id))
     })
 
@@ -144,7 +146,7 @@ object Worker {
     // Remove duplciates:
     //TODO: This should be moved to the estimateNextBus method
     write(finalEst.groupBy(x => x.blockId + "." + x.busId).map(k => k._2.head).toList.sortWith(
-      _.arrival.getTime < _.arrival.getTime))
+      _.arrival.head.getTime < _.arrival.head.getTime))
     
 
 //    write(finalEst)

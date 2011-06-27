@@ -11,6 +11,32 @@ case class LatLon(lat:Double,lon:Double) {
 }
 
 /**
+ * Convience object for building modesl
+ */
+object Model {
+  def now = new Date().getTime
+  val day = 1000 * 60 * 60 * 24
+
+  def time24h = {
+    val cal = Calendar.getInstance()
+
+    cal.set(Calendar.HOUR_OF_DAY, 0)
+    cal.set(Calendar.MINUTE, 0)
+    
+    val midnight_am = cal.getTime()
+
+    cal.set(Calendar.HOUR_OF_DAY, 23)
+    cal.set(Calendar.MINUTE, 59)
+    val midnight_pm = cal.getTime()
+
+    (midnight_am, midnight_pm)
+  }
+
+  def baseline(routeId:Int):List[Model] = List(
+    Model(routeId,0.1,4,(new Date(now - day), None), time24h, (0.0,0.0)))
+}
+
+/**
  * Parameters to the estimation model
  *
  * @param route The db id of the route to estimate
@@ -25,9 +51,8 @@ case class LatLon(lat:Double,lon:Double) {
  */
 case class Model(route: Int, summarySegmentSizeKm: Double, maxNumberOfIntervals: Int, dateRange:(Date,Option[Date]), timeRange:(Date,Date), distRange:(Double,Double))
 {
-
   def copyWithNewDistances(nstart: Double, nend:Double) =
-    Model(route, summarySegmentSizeKm, maxNumberOfIntervals, dateRange, timeRange, distRange)
+    Model(route, summarySegmentSizeKm, maxNumberOfIntervals, dateRange, timeRange, (nstart, nend))
 
   //@todo: Test Me
   def createOutputIntervals():List[(Double,Double)] = {
@@ -62,8 +87,8 @@ case class Model(route: Int, summarySegmentSizeKm: Double, maxNumberOfIntervals:
   }
 }
 
-case class BusEst(blockId: String, busId: String, station: LatLon, origOffset: Double, offset: Double, arrival: Date) {
-  def arrival(v: Date):BusEst = BusEst(blockId, busId, station, origOffset, offset, v)
+case class BusEst(blockId: String, busId: String, station: LatLon, origOffset: Double, offset: Double, arrival: List[Date]) {
+  def arrival(v: List[Date]):BusEst = BusEst(blockId, busId, station, origOffset, offset, v)
 }
 
 case class EstInterval(startDist: Double, endDist: Double, v: List[Double], t: List[Double])
@@ -114,11 +139,30 @@ class Estimator {
 		      m.map(model => intervals.filter(model.usesInterval(_))),
 		      m.head.maxNumberOfIntervals)
 
-
-
   def estimateIntervals(targetIntervals: List[(Double,Double)], measuredIntervals: List[List[Interval]], takeSize: Int) = {
     targetIntervals.map(tgt => estimateInterval(tgt, measuredIntervals, takeSize))
   }
+
+  def now:Long = new Date().getTime
+
+  //@todo test me!
+  //@todo is kind of odd that each bus est contains many positions for each model
+  def reduceIntervalsToDate(dataOffsetInMinutes: Int, evals: List[EstInterval]):List[Date] =
+    reduceIntervalsToDate(dataOffsetInMinutes, evals.map(_.t))
+ 
+  @tailrec
+  final def reduceIntervalsToDate(dataOffsetInMinutes: Int, evals: List[List[Double]],times:List[Date] = Nil):List[Date] = 
+    if (evals.size == 0) times.reverse
+    else {
+      var split = evals.map(v => (v.head, v.tail))
+      var cur = split.map(_._1)
+      var rest = split.map(_._2)
+
+      reduceIntervalsToDate(dataOffsetInMinutes, rest, reduceTimesToDate(dataOffsetInMinutes, cur) :: times)
+    }
+
+  def reduceTimesToDate(dataOffsetInMinutes: Int, times: List[Double]):Date =
+    new Date((times.foldLeft(0.0)(_+_) * 1000.0).toLong + now - (dataOffsetInMinutes * 60.0 * 1000.0).toLong)
 
   /**
    *
@@ -129,7 +173,7 @@ class Estimator {
    *
    * @return List of bus estimates
    */
-  def estimateNextBus(station: LatLon, route:List[RoutePoint], buses: List[BusRecord], ivals:List[Interval]):Either[String,List[BusEst]] = {
+  def estimateNextBus(station: LatLon, route:List[RoutePoint], buses: List[BusRecord], models: List[Model], ivals:List[Interval]):Either[String,List[BusEst]] = {
     
     // Determine linear ref for the station
     val srefOpt = distanceOnRoute(route, station)
@@ -149,16 +193,12 @@ class Estimator {
                  LatLon(x.lat.toDouble,x.lng.toDouble)).getOrElse(-1.0), null)).filter(
                    x => x.offset >= 0 && x.offset < sref)
       
-      val t = new Date().getTime
-      
       // Convert from time offset (in seconds) to a data
       // also substract original delay (in minutes)
       Right(brefs.map(x => 
         x.arrival(
-          new Date(t - 
-                   (x.origOffset * 60.0 * 1000.0).toLong + 
-                   (estimate(x.offset, sref, ivals) * 1000).toLong))).sortWith(
-                     _.arrival.getTime < _.arrival.getTime))
+	  reduceIntervalsToDate(x.origOffset.toInt, estimateIntervals(models.map(_.copyWithNewDistances(x.offset, sref)), ivals)))).sortWith(
+            _.arrival.head.getTime < _.arrival.head.getTime))
     } else {
       Left("Error - station lat/lon not found on the given route")
     }
