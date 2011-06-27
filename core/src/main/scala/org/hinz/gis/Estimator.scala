@@ -33,7 +33,7 @@ object Model {
   }
 
   def baseline(routeId:Int):List[Model] = List(
-    Model(routeId,0.1,4,(new Date(now - day), None), time24h, (0.0,0.0)))
+    Model(routeId,0.1,3,(new Date(now - day), None), time24h, (0.0,0.0)))
 }
 
 /**
@@ -151,13 +151,13 @@ class Estimator {
     reduceIntervalsToDate(dataOffsetInMinutes, evals.map(_.t))
  
   @tailrec
+  //@todo test me too!
   final def reduceIntervalsToDate(dataOffsetInMinutes: Int, evals: List[List[Double]],times:List[Date] = Nil):List[Date] = 
-    if (evals.size == 0) times.reverse
+    if (evals.size == 0 || evals.head.size == 0) times.reverse
     else {
       var split = evals.map(v => (v.head, v.tail))
       var cur = split.map(_._1)
       var rest = split.map(_._2)
-
       reduceIntervalsToDate(dataOffsetInMinutes, rest, reduceTimesToDate(dataOffsetInMinutes, cur) :: times)
     }
 

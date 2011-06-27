@@ -86,14 +86,14 @@ $(function() {
 		    
 		    new google.maps.Marker({
 			position: new google.maps.LatLng(slat,slon),
-			title: (pt.ival.v * 2.23693629) + " mph"
+			title: (pt.ival.v[0] * 2.23693629) + " mph"
 			//		    map: map
 		});
 
 		var pts = $.map(pt.pts, function( ll ) {
 		    return new google.maps.LatLng(ll.lat, ll.lon);
 		});
-		    var mph = pt.ival.v * 2.23693629
+		    var mph = pt.ival.v[0] * 2.23693629
 
 		    map_items.push( 
 			new google.maps.Polyline({

@@ -108,6 +108,9 @@ object Worker {
 
     val finalEst:List[BusEst] = pts.filter(_.isRight).map(_.right.get).flatten
 
+    println("Processed times: ")
+    println(finalEst)
+
     // Remove duplciates:
     //TODO: This should be moved to the estimateNextBus method
     write(finalEst.groupBy(x => x.blockId + "." + x.busId).map(k => k._2.head).toList.sortWith(
@@ -143,6 +146,8 @@ object Worker {
 
     val finalEst:List[BusEst] = pts.filter(_.isRight).map(_.right.get).flatten
     
+    println(finalEst)
+
     // Remove duplciates:
     //TODO: This should be moved to the estimateNextBus method
     write(finalEst.groupBy(x => x.blockId + "." + x.busId).map(k => k._2.head).toList.sortWith(

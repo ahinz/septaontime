@@ -39,7 +39,7 @@
 		dataType: 'jsonp',
 		data: values,
 		success: function( d ) {
-		    var arrival = processDate(d.arrival, true);
+		    var arrival = processDate(d.arrival[0], true);
 		    timeOffset = arrival.getTime() - new Date().getTime();
 
 		    // Now reload stop times...
@@ -167,7 +167,7 @@
 
 		    $.map(d, function( item ) {
 			var appendStr = "<div> Bus #" + item.busId + " at ";
-			var date = processDate(item.arrival) 
+			var date = processDate(item.arrival[0]) 
 			appendStr += dateFormat(date,"HH:MM");
 			
 			if (timeOffset > 0) {
