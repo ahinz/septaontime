@@ -54,23 +54,28 @@ case class Model(route: Int, summarySegmentSizeKm: Double, maxNumberOfIntervals:
   def copyWithNewDistances(nstart: Double, nend:Double) =
     Model(route, summarySegmentSizeKm, maxNumberOfIntervals, dateRange, timeRange, (nstart, nend))
 
-  //@todo: Test Me
   def createOutputIntervals():List[(Double,Double)] = {
-    val pts = (0 to ((distRange._2 - distRange._1) / summarySegmentSizeKm).toInt).toList.map(distRange._1 + _.toDouble * summarySegmentSizeKm) ++ List(distRange._2)
+    if (distRange._1 < 0 || distRange._2 < 0 || distRange._2 < distRange._1)
+      throw new IllegalArgumentException("range must not be negative and start must be > than finish")
+    if (summarySegmentSizeKm <= 0)
+      throw new IllegalArgumentException("summary size must be > 0")
+    
+    var pts = (0 to ((distRange._2 - distRange._1) / summarySegmentSizeKm).toInt).toList.map(distRange._1 + _.toDouble * summarySegmentSizeKm)
+
+    if (pts.last != distRange._2) pts = pts ++ List(distRange._2)
 
     pts.zip(pts.tail)
   }
 
-  //@todo test me
   def usesInterval(ival: Interval) =
     (!dateRange._2.isDefined || isInDateRange(ival.recordedAt, dateRange._1, dateRange._2.get)) &&
-    isInTimeRange(ival.recordedAt, timeRange._1, timeRange._2)
+    isInTimeRange(ival.recordedAt, timeRange._1, timeRange._2) &&
+    ((ival.start >= distRange._1 && ival.start <= distRange._2) ||
+     (ival.end >= distRange._1 && ival.end <= distRange._2))
 
-  //@todo: Test Me
   def isInDateRange(d: Date, startDate: Date, endDate:Date):Boolean =
     d.getTime() <= endDate.getTime() && d.getTime() >= startDate.getTime()
 
-  //@todo: Test Me
   def isInTimeRange(date: Date, startTime: Date, endTime:Date):Boolean = {
     var startTimeCal = Calendar.getInstance()
     startTimeCal.setTime(startTime)
