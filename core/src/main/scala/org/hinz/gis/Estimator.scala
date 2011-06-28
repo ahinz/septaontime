@@ -108,26 +108,31 @@ case class EstInterval(startDist: Double, endDist: Double, v: List[Double], t: L
  */
 class Estimator { 
 
-  //@todo test me!
+  def badSpeedData(d:Double):(Double, Double) = (0, d / 10.0)
+
   //@todo weighted average
-  def getSpeedAndTime(takeSize: Int, dist: Double, ivals: List[Interval]):(Double,Double) = {
-    if (ivals.size == 0) // No Data... not sure what to do here?
-      (0, dist / 10.0) // just guess 10 mph.
+  def getSpeedAndTime(dist: Double, ivals: List[Interval]):(Double,Double) = {
+    if (ivals.size == 0 || dist < 0) // No Data... not sure what to do here?
+      badSpeedData(dist) // just guess 10 mph.
     else {
-      val dataPoints = ivals.map(_.velocity).take(takeSize)
-      val spd = dataPoints.reduceLeft(_ + _) / dataPoints.size
-      val time = dist / spd
-      (spd, time)
+      val spd = ivals.map(_.velocity).reduceLeft(_ + _) / ivals.size.toDouble
+
+      if (spd == 0)
+        badSpeedData(dist)
+      else
+        (spd, dist / spd)
     }
   }
 
 
-  //@todo test me!
-  def estimateInterval(interval: (Double, Double), allIntervals: List[List[Interval]], takeSize: Int):EstInterval = {
+  def estimateInterval(interval: (Double, Double), allIntervals: List[List[Interval]], models: List[Model]):EstInterval = {
     val dist = interval._2 - interval._1
 
-    //@todo Weighted avg
-    val spdAndTimes = allIntervals.map(intervals => getSpeedAndTime(takeSize, dist, intervals.filter(x => x.start <= interval._2 && x.end >= interval._1)))
+    val prunedIntervals = allIntervals.zip(models).map(m =>
+      m._1.filter(iv => m._2.usesInterval(iv) && iv.overlaps(interval._1, interval._2)))
+
+    //@todo Weighted avg by date!
+    val spdAndTimes = prunedIntervals.map(intervals => getSpeedAndTime(dist, intervals.filter(x => x.start <= interval._2 && x.end >= interval._1)))
 
     EstInterval(interval._1, 
 		interval._2, 
@@ -138,25 +143,22 @@ class Estimator {
   def estimateIntervals(m: Model, intervals: List[Interval]):List[EstInterval] =
     estimateIntervals(List(m), intervals)
 
-  //@todo test me!
   def estimateIntervals(m: List[Model], intervals: List[Interval]):List[EstInterval] =
     estimateIntervals(m.head.createOutputIntervals(),
 		      m.map(model => intervals.filter(model.usesInterval(_))),
-		      m.head.maxNumberOfIntervals)
+		      m)
 
-  def estimateIntervals(targetIntervals: List[(Double,Double)], measuredIntervals: List[List[Interval]], takeSize: Int) = {
-    targetIntervals.map(tgt => estimateInterval(tgt, measuredIntervals, takeSize))
+  def estimateIntervals(targetIntervals: List[(Double,Double)], measuredIntervals: List[List[Interval]], models: List[Model]) = {
+    targetIntervals.map(tgt => estimateInterval(tgt, measuredIntervals, models))
   }
 
   def now:Long = new Date().getTime
 
-  //@todo test me!
   //@todo is kind of odd that each bus est contains many positions for each model
   def reduceIntervalsToDate(dataOffsetInMinutes: Int, evals: List[EstInterval]):List[Date] =
     reduceIntervalsToDate(dataOffsetInMinutes, evals.map(_.t))
  
   @tailrec
-  //@todo test me too!
   final def reduceIntervalsToDate(dataOffsetInMinutes: Int, evals: List[List[Double]],times:List[Date] = Nil):List[Date] = 
     if (evals.size == 0 || evals.head.size == 0) times.reverse
     else {
@@ -178,6 +180,7 @@ class Estimator {
    *
    * @return List of bus estimates
    */
+  //@todo test me!
   def estimateNextBus(station: LatLon, route:List[RoutePoint], buses: List[BusRecord], models: List[Model], ivals:List[Interval]):Either[String,List[BusEst]] = {
     
     // Determine linear ref for the station
@@ -212,46 +215,8 @@ class Estimator {
   var log = false
   var segSize = 0.1 // 100 meters
  
-  /**
-   * Given a start and an end point attempt to guess how long it will
-   * take to traverse the distance based on sample intervals
-   *
-   * The algorithm split the start/end distance into segments of size
-   * segSize and then finds an average velocity based on some combination of
-   * the overlapping intervals
-   *
-   * @param startDist start linear ref
-   * @param endDist ending linear ref
-   * @param intervals sample intervals
-   * @param est time offset estimate
-   * @return best estimate for time from start to end
-   */
-  @tailrec
-  final def estimate(startDist:Double, endDist:Double, intervals:List[Interval], est:Double = 0):Double = {
-    if (startDist >= endDist) est
-    else {
-      val thisInterval = (startDist,startDist+segSize)
-      printlg("About to process " + thisInterval + "... ")
-
-      val inRange = intervals.filter(x => x.start <= thisInterval._2 && x.end >= thisInterval._1)
-
-      printlg(" #I: " + inRange.length)
-
-      // Compute an average speed:
-      // Only use the 4 most recent samples...
-      val takeSize = 4
-      val dataPoints = inRange.map(_.velocity).take(takeSize)
-      val spd = dataPoints.reduceLeft(_ + _) / dataPoints.size
-      val combd = segSize / spd
-
-      printlg(" Avg V: " + spd)
-      printlnlg(" Est: " + combd)
-      estimate(thisInterval._2, endDist, intervals, est + combd)
-    }
-  }
-  
-  def fudgeLat = 1.0/3600.0
-  def fudgeLon = 1.0/3600.0
+  val fudgeLat = 1.0/3600.0
+  val fudgeLon = 1.0/3600.0
 
   /**
    * Find the smallest distance between the given route and
@@ -260,6 +225,7 @@ class Estimator {
    * If no distance less than a preset threshold can be found
    * this method returns None
    */
+  //@test me
   def distanceOnRoute(route: List[RoutePoint], pt:LatLon):Option[Double] = {
     
     // Determine if any route point pair could contain this interval

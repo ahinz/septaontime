@@ -82,9 +82,13 @@ case class Interval(id: Int, route_id:Int, bus_data_id1:Int, bus_data_id2:Int,
 
   def velocity = (end - start)/time
 
-  def overlaps(i: Interval) =
-    (i.start >= start && i.start <= end) ||
-    (i.end >= start && i.end <= end)
+  def overlaps(i: Interval):Boolean =
+    overlaps(i.start, i.end)
+
+  def overlaps(istart: Double, iend: Double):Boolean =
+    (istart >= start && istart <= end) ||
+    (iend >= start && iend <= end) ||
+    (istart <= start && iend >= end)
 
   def samePoints(i: Interval) = 
     U.dblCompare(i.start,start) && U.dblCompare(i.end,end)
