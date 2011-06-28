@@ -66,8 +66,7 @@ class EstimatorSpec extends Spec with ShouldMatchers {
     }
 
     it ("should be able to estimate the next bus") {
-      val e = new Estimator()
-
+      pending
     }
 
     it ("should be able to estimate distance on a given route") {
