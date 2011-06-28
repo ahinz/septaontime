@@ -17,6 +17,15 @@ object Model {
   def now = new Date().getTime
   val day = 1000 * 60 * 60 * 24
 
+  def timeHoursAgo(hours: Int, minutes: Int = 0) = {
+    val cal = Calendar.getInstance()
+    cal.setTime(new Date())
+    cal.set(Calendar.HOUR_OF_DAY, cal.get(Calendar.HOUR_OF_DAY) - hours)
+    cal.set(Calendar.MINUTE, cal.get(Calendar.MINUTE) - minutes)
+
+    (cal.getTime(), new Date())
+  }
+
   def time24h = {
     val cal = Calendar.getInstance()
 
@@ -33,7 +42,7 @@ object Model {
   }
 
   def baseline(routeId:Int):List[Model] = List(
-    Model(routeId,0.1,3,(new Date(now - day), None), time24h, (0.0,0.0)))
+    Model(routeId,1.8,3,(new Date(now - day), None), timeHoursAgo(1), (0.0,0.0)))
 }
 
 /**
@@ -68,11 +77,13 @@ case class Model(route: Int, summarySegmentSizeKm: Double, maxNumberOfIntervals:
   }
 
   def usesInterval(ival: Interval) =
-    (!dateRange._2.isDefined || isInDateRange(ival.recordedAt, dateRange._1, dateRange._2.get)) &&
+    ival.recordedAt.getTime() >= dateRange._1.getTime() &&
+    (!dateRange._2.isDefined || ival.recordedAt.getTime() < dateRange._2.get.getTime()) &&
     isInTimeRange(ival.recordedAt, timeRange._1, timeRange._2) &&
     ((ival.start >= distRange._1 && ival.start <= distRange._2) ||
      (ival.end >= distRange._1 && ival.end <= distRange._2))
 
+//@todo - handle "option" end date to make usesInterval more pretty
   def isInDateRange(d: Date, startDate: Date, endDate:Date):Boolean =
     d.getTime() <= endDate.getTime() && d.getTime() >= startDate.getTime()
 
@@ -116,6 +127,7 @@ class Estimator {
       badSpeedData(dist) // just guess 10 mph.
     else {
       val spd = ivals.map(_.velocity).reduceLeft(_ + _) / ivals.size.toDouble
+      println("spd @ ival: " + spd + " | " + ivals.size + " | " + ivals.take(3))
 
       if (spd == 0)
         badSpeedData(dist)
