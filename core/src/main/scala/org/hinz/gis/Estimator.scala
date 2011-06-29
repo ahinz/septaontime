@@ -81,7 +81,8 @@ case class Model(route: Int, summarySegmentSizeKm: Double, maxNumberOfIntervals:
     (!dateRange._2.isDefined || ival.recordedAt.getTime() < dateRange._2.get.getTime()) &&
     isInTimeRange(ival.recordedAt, timeRange._1, timeRange._2) &&
     ((ival.start >= distRange._1 && ival.start <= distRange._2) ||
-     (ival.end >= distRange._1 && ival.end <= distRange._2))
+     (ival.end >= distRange._1 && ival.end <= distRange._2) ||
+     ival.end >= distRange._2 && ival.start <= distRange._1)
 
 //@todo - handle "option" end date to make usesInterval more pretty
   def isInDateRange(d: Date, startDate: Date, endDate:Date):Boolean =
@@ -156,9 +157,10 @@ class Estimator {
     estimateIntervals(List(m), intervals)
 
   def estimateIntervals(m: List[Model], intervals: List[Interval]):List[EstInterval] =
-    estimateIntervals(m.head.createOutputIntervals(),
-		      m.map(model => intervals.filter(model.usesInterval(_))),
-		      m)
+    if (m.size == 0) Nil
+    else estimateIntervals(m.head.createOutputIntervals(),
+                           m.map(x => intervals), // each model needs to have its own interval set. these intervals are pruned in estimateInterval
+		           m) 
 
   def estimateIntervals(targetIntervals: List[(Double,Double)], measuredIntervals: List[List[Interval]], models: List[Model]) = {
     targetIntervals.map(tgt => estimateInterval(tgt, measuredIntervals, models))
@@ -169,7 +171,7 @@ class Estimator {
   //@todo is kind of odd that each bus est contains many positions for each model
   def reduceIntervalsToDate(dataOffsetInMinutes: Int, evals: List[EstInterval]):List[Date] =
     reduceIntervalsToDate(dataOffsetInMinutes, evals.map(_.t))
- 
+
   @tailrec
   final def reduceIntervalsToDate(dataOffsetInMinutes: Int, evals: List[List[Double]],times:List[Date] = Nil):List[Date] = 
     if (evals.size == 0 || evals.head.size == 0) times.reverse
