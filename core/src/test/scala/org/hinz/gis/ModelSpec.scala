@@ -7,6 +7,41 @@ import org.hinz.gis._
 import java.util.{Date,Calendar}
 
 class ModelSpec extends Spec with ShouldMatchers {
+  describe("Model Object") {
+    it ("should use convience methods for current date and length of a day") {
+      Model.day should equal(86400000)
+    }
+    
+    it ("should get able to return a date between 'now' and a few hours ago") {
+      val hours = 2
+      val mins = 20
+      val mills = 1000*60*mins + 1000*60*60*hours
+
+      val dates = Model.timeHoursAgo(2,20)
+
+      (dates._2.getTime() - dates._1.getTime()) should equal(mills)
+    }
+
+    it ("should be able to return a full day of time") {
+      val dates = Model.time24h
+
+      val cal = Calendar.getInstance()
+      cal.setTime(dates._1)
+      cal.get(Calendar.HOUR_OF_DAY) should equal(0)
+      cal.get(Calendar.MINUTE) should equal(0)
+
+      (dates._2.getTime() - dates._1.getTime()) should equal(Model.day - 1000*60)
+    }
+
+    it ("should return a baseline with reasonable defaults") {
+      val baseline = Model.baseline(1)(0)
+
+      baseline.route should equal(1)
+      baseline.dateRange._2 should equal(None)
+    }
+    
+  }
+
   describe("Model") {
     it ("should generate properly spaced intervals") {
       val model = Model(0,1,2,(null,null),(null,null),(0.0,50.0))

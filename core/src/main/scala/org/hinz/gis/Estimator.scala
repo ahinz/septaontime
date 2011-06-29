@@ -10,99 +10,6 @@ case class LatLon(lat:Double,lon:Double) {
   def toPoint2D = new Point2D.Double(lon,lat)
 }
 
-/**
- * Convience object for building modesl
- */
-object Model {
-  def now = new Date().getTime
-  val day = 1000 * 60 * 60 * 24
-
-  def timeHoursAgo(hours: Int, minutes: Int = 0) = {
-    val cal = Calendar.getInstance()
-    cal.setTime(new Date())
-    cal.set(Calendar.HOUR_OF_DAY, cal.get(Calendar.HOUR_OF_DAY) - hours)
-    cal.set(Calendar.MINUTE, cal.get(Calendar.MINUTE) - minutes)
-
-    (cal.getTime(), new Date())
-  }
-
-  def time24h = {
-    val cal = Calendar.getInstance()
-
-    cal.set(Calendar.HOUR_OF_DAY, 0)
-    cal.set(Calendar.MINUTE, 0)
-    
-    val midnight_am = cal.getTime()
-
-    cal.set(Calendar.HOUR_OF_DAY, 23)
-    cal.set(Calendar.MINUTE, 59)
-    val midnight_pm = cal.getTime()
-
-    (midnight_am, midnight_pm)
-  }
-
-  def baseline(routeId:Int):List[Model] = List(
-    Model(routeId,1.8,3,(new Date(now - day), None), timeHoursAgo(1), (0.0,0.0)))
-}
-
-/**
- * Parameters to the estimation model
- *
- * @param route The db id of the route to estimate
- * @param summarySegmentSizeKm The size of segment to summarize
- * @param maxNumberOfIntervals The maximum number of intervals to use for a given segment
- * @param startDate Start date of intervals
- * @param endDate Last date to use (specify None to use most up-to-date value)
- * @param upperTimeBound earliest hour/minute to use
- * @param lowerTimeBound latest hour/minute to use
- * @param startDist distance to start at
- * @param endDist distance to finish at or None for the entire route
- */
-case class Model(route: Int, summarySegmentSizeKm: Double, maxNumberOfIntervals: Int, dateRange:(Date,Option[Date]), timeRange:(Date,Date), distRange:(Double,Double))
-{
-  def copyWithNewDistances(nstart: Double, nend:Double) =
-    Model(route, summarySegmentSizeKm, maxNumberOfIntervals, dateRange, timeRange, (nstart, nend))
-
-  def createOutputIntervals():List[(Double,Double)] = {
-    if (distRange._1 < 0 || distRange._2 < 0 || distRange._2 < distRange._1)
-      throw new IllegalArgumentException("range must not be negative and start must be > than finish")
-    if (summarySegmentSizeKm <= 0)
-      throw new IllegalArgumentException("summary size must be > 0")
-    
-    var pts = (0 to ((distRange._2 - distRange._1) / summarySegmentSizeKm).toInt).toList.map(distRange._1 + _.toDouble * summarySegmentSizeKm)
-
-    if (pts.last != distRange._2) pts = pts ++ List(distRange._2)
-
-    pts.zip(pts.tail)
-  }
-
-  def usesInterval(ival: Interval) =
-    ival.recordedAt.getTime() >= dateRange._1.getTime() &&
-    (!dateRange._2.isDefined || ival.recordedAt.getTime() < dateRange._2.get.getTime()) &&
-    isInTimeRange(ival.recordedAt, timeRange._1, timeRange._2) &&
-    ((ival.start >= distRange._1 && ival.start <= distRange._2) ||
-     (ival.end >= distRange._1 && ival.end <= distRange._2) ||
-     ival.end >= distRange._2 && ival.start <= distRange._1)
-
-//@todo - handle "option" end date to make usesInterval more pretty
-  def isInDateRange(d: Date, startDate: Date, endDate:Date):Boolean =
-    d.getTime() <= endDate.getTime() && d.getTime() >= startDate.getTime()
-
-  def isInTimeRange(date: Date, startTime: Date, endTime:Date):Boolean = {
-    var startTimeCal = Calendar.getInstance()
-    startTimeCal.setTime(startTime)
-    var endTimeCal = Calendar.getInstance()
-    endTimeCal.setTime(endTime)
-    var dCal = Calendar.getInstance()
-    dCal.setTime(date)
-
-    var start = startTimeCal.get(Calendar.HOUR_OF_DAY) + startTimeCal.get(Calendar.MINUTE) / 60.0
-    var end = endTimeCal.get(Calendar.HOUR_OF_DAY) + endTimeCal.get(Calendar.MINUTE) / 60.0
-    var d = dCal.get(Calendar.HOUR_OF_DAY) + dCal.get(Calendar.MINUTE) / 60.0
-
-    d <= end && d >= start
-  }
-}
 
 case class BusEst(blockId: String, busId: String, station: LatLon, origOffset: Double, offset: Double, arrival: List[Date]) {
   def arrival(v: List[Date]):BusEst = BusEst(blockId, busId, station, origOffset, offset, v)
@@ -198,10 +105,10 @@ class Estimator {
   def estimateNextBus(station: LatLon, route:List[RoutePoint], buses: List[BusRecord], models: List[Model], ivals:List[Interval]):Either[String,List[BusEst]] = {
     
     // Determine linear ref for the station
-    val srefOpt = distanceOnRoute(route, station)
+    var nearestPt = nearestPointOnRoute(route, station)
 
-    if (srefOpt.isDefined) {
-      val sref = srefOpt.get
+    if (nearestPt.isDefined) {
+      val sref = nearestPt.get.distanceTo(station)
 
       // Convert each bus to a linear ref and discard busses
       // that have already arrived at the destination
@@ -210,10 +117,8 @@ class Estimator {
                x.VehicleID, 
                station, 
                x.Offset.toDouble, 
-               distanceOnRoute(
-                 route, 
-                 LatLon(x.lat.toDouble,x.lng.toDouble)).getOrElse(-1.0), null)).filter(
-                   x => x.offset >= 0 && x.offset < sref)
+               nearestPointOnRoute(route, x.toLatLon).map(_.distanceTo(x.toLatLon)).getOrElse(-1.0),
+               null)).filter(x => x.offset >= 0 && x.offset < sref)
       
       // Convert from time offset (in seconds) to a data
       // also substract original delay (in minutes)
@@ -229,8 +134,10 @@ class Estimator {
   var log = false
   var segSize = 0.1 // 100 meters
  
-  val fudgeLat = 1.0/3600.0
-  val fudgeLon = 1.0/3600.0
+  // Tune these as you wish
+  var fudgeLat = 1.0/3600.0
+  var fudgeLon = 1.0/3600.0
+  var minDist = 0.01
 
   /**
    * Find the smallest distance between the given route and
@@ -240,6 +147,46 @@ class Estimator {
    * this method returns None
    */
   //@test me
+  def nearestPointOnRoute(route: List[RoutePoint], pt:LatLon):Option[RoutePoint] = route match {
+    case Nil => None
+    case _ =>
+      nearestPointOnRoute(route.zip(route.tail), pt, None, minDist)
+  }
+
+/*
+ * for(minRtPt <- minRt) 
+                  yield(minRtPt.ref + 
+                        GIS.distanceCalculator(minRtPt.lat,minRtPt.lon,tgtPt.lat, tgtPt.lon))
+*/
+
+  @tailrec
+  final def nearestPointOnRoute(route: List[(RoutePoint,RoutePoint)], tgtPt: LatLon, minRt: Option[RoutePoint], minDist: Double):Option[RoutePoint] = route match {
+    case Nil => minRt
+    case x::xs => {
+      if (boundingBoxContainsPt(x._1,x._2,tgtPt)) {
+        var newMinDist = GIS.minDistance((tgtPt.lon,tgtPt.lat), 
+                                         GIS.computeLine(x._1.lon,x._1.lat,x._2.lon,x._2.lat))
+
+        if (newMinDist <= minDist)
+          nearestPointOnRoute(xs, tgtPt, Some(x._1), newMinDist)
+        else
+          nearestPointOnRoute(xs, tgtPt, minRt, minDist)
+      } else
+        nearestPointOnRoute(xs, tgtPt, minRt, minDist)
+    }  
+  }
+                    
+  def boundingBoxContainsPt(p1: RoutePoint, p2: RoutePoint, pt: LatLon, fudgeLat:Double = fudgeLat, fudgeLon:Double = fudgeLon) = {
+    val maxlat = p1.lat.max(p2.lat)
+    val minlat = p1.lat.min(p2.lat)
+    val maxlon = p1.lon.max(p2.lon)
+    val minlon = p1.lon.min(p2.lon)
+    
+    pt.lat >= minlat - fudgeLat  && pt.lat <= maxlat + fudgeLat &&
+    pt.lon >= minlon - fudgeLon && pt.lon <= maxlon + fudgeLon
+  }
+  
+/*
   def distanceOnRoute(route: List[RoutePoint], pt:LatLon):Option[Double] = {
     
     // Determine if any route point pair could contain this interval
@@ -250,16 +197,10 @@ class Estimator {
         val p1 = p._1
         val p2 = p._2
 
-        val maxlat = p1.lat.max(p2.lat)
-        val minlat = p1.lat.min(p2.lat)
-        val maxlon = p1.lon.max(p2.lon)
-        val minlon = p1.lon.min(p2.lon)
-
-        if (pt.lat >= minlat - fudgeLat  && pt.lat <= maxlat + fudgeLat &&
-            pt.lon >= minlon - fudgeLon && pt.lon <= maxlon + fudgeLon) {
-
+        if (boundingBoxContainsPt(p1,p2,pt,fudgelat, fudgeLon)) {
           val minDist = GIS.minDistance((pt.lon,pt.lat),
                                       GIS.computeLine(p1.lon,p1.lat,p2.lon,p2.lat))
+
 
           if (minDist < curmin._2)
             (Some((p1,p2)), minDist)
@@ -272,7 +213,7 @@ class Estimator {
    
     m._1.map( p => p._1.ref + GIS.distanceCalculator(p._1.lat,p._1.lon,pt.lat,pt.lon) )
   }
-
+*/
   def printlg(x:String) = if (log) print(x)
   def printlnlg(x:String) = if (log) println(x)
 

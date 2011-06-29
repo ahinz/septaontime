@@ -126,13 +126,74 @@ class EstimatorSpec extends Spec with ShouldMatchers {
 
     }
 
+    def mkRoutePt(lat: Double, lon: Double, ref: Double) =
+      RoutePoint(0, 0, lat, lon, ref)
+
+    describe("Route matching") {
+      it ("should be able to tell if a point is in the bounding box") {
+        val e = new Estimator()
+        e.fudgeLat = 0
+        e.fudgeLon = 0
+
+        e.boundingBoxContainsPt(mkRoutePt(10,20,0), mkRoutePt(20,40,0), LatLon(5, 5)) should equal(false)
+        e.boundingBoxContainsPt(mkRoutePt(10,20,0), mkRoutePt(20,40,0), LatLon(5, 25)) should equal(false)
+        e.boundingBoxContainsPt(mkRoutePt(10,20,0), mkRoutePt(20,40,0), LatLon(15, 5)) should equal(false)
+        e.boundingBoxContainsPt(mkRoutePt(10,20,0), mkRoutePt(20,40,0), LatLon(10, 19)) should equal(false)
+
+        e.boundingBoxContainsPt(mkRoutePt(10,20,0), mkRoutePt(20,40,0), LatLon(10, 20)) should equal(true)
+        e.boundingBoxContainsPt(mkRoutePt(10,20,0), mkRoutePt(20,40,0), LatLon(20, 20)) should equal(true)
+        e.boundingBoxContainsPt(mkRoutePt(10,20,0), mkRoutePt(20,40,0), LatLon(20, 40)) should equal(true)
+        e.boundingBoxContainsPt(mkRoutePt(10,20,0), mkRoutePt(20,40,0), LatLon(15, 30)) should equal(true)
+
+        e.fudgeLat = 5
+        e.fudgeLon = 5
+
+        e.boundingBoxContainsPt(mkRoutePt(10,20,0), mkRoutePt(20,40,0), LatLon(5, 5)) should equal(false)
+        e.boundingBoxContainsPt(mkRoutePt(10,20,0), mkRoutePt(20,40,0), LatLon(5, 25)) should equal(true)
+        e.boundingBoxContainsPt(mkRoutePt(10,20,0), mkRoutePt(20,40,0), LatLon(15, 45)) should equal(true)
+        e.boundingBoxContainsPt(mkRoutePt(10,20,0), mkRoutePt(20,40,0), LatLon(10, 19)) should equal(true)
+      }
+
+      it ("should be able to calculate distance on empty route list") {
+        val e = new Estimator()
+        e.nearestPointOnRoute(Nil, LatLon(2,2)) should equal(None)
+        e.nearestPointOnRoute(Nil, LatLon(2,2), None, 0.0) should equal(None)
+      }
+
+      it ("should be able to determine a simple case") {
+        val e = new Estimator()
+        e.fudgeLat = 2.0
+        e.fudgeLon = 2.0
+        e.minDist = 2.0
+
+        // Cheat and use flat coord system
+        GIS.distanceCalculator = GIS.flatDistanceCalculator
+
+        val p1 = mkRoutePt(1, 0, 100)
+        val p2 = mkRoutePt(2, 10, 200)
+        val p3 = mkRoutePt(3, 25, 250)
+        val p4 = mkRoutePt(4, 40, 400)
+        val p5 = mkRoutePt(5, 41, 500)
+        val p6 = mkRoutePt(6, 43, 510)
+        val p7 = mkRoutePt(-2, -2, 700)
+
+        val pts = List(p1,p2,p3,p4, p5, p6, p7)
+
+        e.nearestPointOnRoute(pts, LatLon(0,43)) should equal(None) // Out of bounds
+        e.nearestPointOnRoute(pts, LatLon(3,25)) should equal(Some(p3)) // Right on pt
+        e.nearestPointOnRoute(pts, LatLon(2.6,17.5)) should equal(Some(p2)) // Between pts
+        e.nearestPointOnRoute(pts, LatLon(4.7,41.0)) should equal(Some(p4)) // Smaller dist (don't jump ahead)
+
+        e.minDist = 30.0
+        e.nearestPointOnRoute(pts, LatLon(3,25)) should equal(Some(p3)) // Ignore others after smallest found
+
+      }
+    }
+
     it ("should be able to estimate the next bus") {
       pending
     }
 
-    it ("should be able to estimate distance on a given route") {
-      pending
-    }
   }
 
 

@@ -77,7 +77,7 @@ object GIS {
     val b = l._2
 
     // Y-intercept of intercepting line
-    val m2 = 1.0/m
+    val m2 = -1.0/m
     val b2 = p._2 - m2*p._1
 
     // Special case: same line

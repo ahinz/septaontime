@@ -74,7 +74,10 @@ case class Route(id: Int, shortname: String, longname: String, desc: String, dir
 /**
  * A Route Point represents a single point on a route
  */
-case class RoutePoint(id: Int, route_id: Int, lat: Double, lon:Double, ref: Double)
+case class RoutePoint(id: Int, route_id: Int, lat: Double, lon:Double, ref: Double) {
+  def distanceTo(tgtPt: LatLon) =
+      ref + GIS.distanceCalculator(lat, lon, tgtPt.lat, tgtPt.lon)
+}
 
 
 case class Interval(id: Int, route_id:Int, bus_data_id1:Int, bus_data_id2:Int,

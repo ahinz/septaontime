@@ -6,6 +6,8 @@ import org.hinz.septa._
 class GISSpec extends Spec with ShouldMatchers {
   describe("GIS Utility") {
     it ("should be able to tell the distance between two latitude/longitude pts") {
+      GIS.distanceCalculator = GIS.sphereDistanceCalculator
+
       (GIS.distanceCalculator(
         24.466666666666665,
         54.36666666666667,
@@ -23,7 +25,7 @@ class GISSpec extends Spec with ShouldMatchers {
       GIS.minDistance((5,5),(1,0)) should equal(0)
 
       // Verified by hand :)
-      (GIS.minDistance((10,20),(2,1))*1000).toInt should equal(745)
+      (GIS.minDistance((10,20),(2,1))*1000).toInt should equal(447)
     }
 
     it("should compute lines correctly") {
