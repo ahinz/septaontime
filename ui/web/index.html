@@ -34,6 +34,8 @@
 		lon2: values2.lon
 	    };
 
+	console.log(URL + "next    " + JSON.stringify(values));
+
 	    $.ajax({
 		url: ajaxURL, 
 		dataType: 'jsonp',
@@ -155,6 +157,7 @@
 	    var values = parseNextValue(
 		$("#direction_by_station option:selected").attr("value"),
 		stationval);
+		console.log(URL + "next    " + JSON.stringify(values));
 
 	    $.ajax({
 		url: URL + "next",

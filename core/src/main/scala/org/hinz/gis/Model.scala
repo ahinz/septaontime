@@ -39,7 +39,7 @@ object Model {
   }
 
   def baseline(routeId:Int):List[Model] = List(
-    Model(routeId,1.8,3,(new Date(now - day), None), timeHoursAgo(1), (0.0,0.0)))
+    Model(routeId,0.1,3,(new Date(now - day), None), timeHoursAgo(1), (0.0,0.0)))
 }
 
 /**
