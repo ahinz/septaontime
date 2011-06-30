@@ -35,7 +35,7 @@ class Estimator {
       badSpeedData(dist) // just guess 10 mph.
     else {
       val spd = ivals.map(_.velocity).reduceLeft(_ + _) / ivals.size.toDouble
-      println("spd @ ival: " + spd + " | " + ivals.size + " | " + ivals.take(3))
+      printlg("spd @ ival: " + spd + " | " + ivals.size + " | " + ivals.take(3))
 
       if (spd == 0)
         badSpeedData(dist)
@@ -76,22 +76,31 @@ class Estimator {
   def now:Long = new Date().getTime
 
   //@todo is kind of odd that each bus est contains many positions for each model
-  def reduceIntervalsToDate(dataOffsetInMinutes: Int, evals: List[EstInterval]):List[Date] =
-    reduceIntervalsToDate(dataOffsetInMinutes, evals.map(_.t))
+  def reduceIntervalsToMinuteOffset(evals: List[EstInterval]):List[Double] =
+    reduceIntervalsToMinuteOffset(evals.map(_.t))
 
   @tailrec
-  final def reduceIntervalsToDate(dataOffsetInMinutes: Int, evals: List[List[Double]],times:List[Date] = Nil):List[Date] = 
+  final def reduceIntervalsToMinuteOffset(evals: List[List[Double]],times:List[Double] = Nil):List[Double] = 
     if (evals.size == 0 || evals.head.size == 0) times.reverse
     else {
       var split = evals.map(v => (v.head, v.tail))
       var cur = split.map(_._1)
       var rest = split.map(_._2)
-      reduceIntervalsToDate(dataOffsetInMinutes, rest, reduceTimesToDate(dataOffsetInMinutes, cur) :: times)
+      reduceIntervalsToMinuteOffset(rest, (cur.reduceLeft(_+_) / 60.0) :: times)
     }
 
-  def reduceTimesToDate(dataOffsetInMinutes: Int, times: List[Double]):Date =
-    new Date((times.foldLeft(0.0)(_+_) * 1000.0).toLong + now - (dataOffsetInMinutes * 60.0 * 1000.0).toLong)
 
+  def createBusEst(station: LatLon, sref: Double, r: BusRecord, dist: Option[Double]):Option[BusEst] = dist match {
+    case Some(aDist) if aDist >= 0 && aDist <= sref => Some(BusEst(
+      r.BlockID,
+      r.VehicleID,
+      station,
+      r.Offset.toDouble,
+      aDist,
+      null))
+    case _ => None
+  }
+      
   /**
    *
    * @param station Lat/Lon for the station to check
@@ -102,7 +111,7 @@ class Estimator {
    * @return List of bus estimates
    */
   //@todo test me!
-  def estimateNextBus(station: LatLon, route:List[RoutePoint], buses: List[BusRecord], models: List[Model], ivals:List[Interval]):Either[String,List[BusEst]] = {
+  def estimateNextBus(station: LatLon, route:List[RoutePoint], buses: List[BusRecord], models: List[Model], ivals:List[Interval]):Option[List[BusEst]] = {
     
     // Determine linear ref for the station
     var nearestPt = nearestPointOnRoute(route, station)
@@ -112,25 +121,42 @@ class Estimator {
 
       // Convert each bus to a linear ref and discard busses
       // that have already arrived at the destination
-      val brefs:List[BusEst] = buses.map(x =>
-        BusEst(x.BlockID, 
-               x.VehicleID, 
-               station, 
-               x.Offset.toDouble, 
-               nearestPointOnRoute(route, x.toLatLon).map(_.distanceTo(x.toLatLon)).getOrElse(-1.0),
-               null)).filter(x => x.offset >= 0 && x.offset < sref)
+      val brefs:List[BusEst] = buses.flatMap(bus =>
+        createBusEst(station, 
+                     sref, 
+                     bus, 
+                     nearestPointOnRoute(
+                       route, 
+                       bus.toLatLon).map(
+                         _.distanceTo(station))))
       
       // Convert from time offset (in seconds) to a data
       // also substract original delay (in minutes)
-      Right(brefs.map(x => 
+      Some(brefs.map(x => 
         x.arrival(
-	  reduceIntervalsToDate(x.origOffset.toInt, estimateIntervals(models.map(_.copyWithNewDistances(x.offset, sref)), ivals)))).sortWith(
-            _.arrival.head.getTime < _.arrival.head.getTime))
+	  reduceIntervalsToMinuteOffset(
+            estimateIntervals(models.map(
+              _.copyWithNewDistances(x.offset, sref)), ivals)).map(t => 
+                new Date((t.toLong - x.origOffset.toInt)* 60*1000L + now)))).sortWith(
+                  _.arrival.head.getTime < _.arrival.head.getTime))
     } else {
-      Left("Error - station lat/lon not found on the given route")
+      None
     }
   }
-
+    
+/*
+  def estimateTimeBetweenPoints(pt1: LatLon, pt2:LatLon, route: List[RoutePoint], models:List[Model], ivals:List[Interval]):Option[List[EstInterval]] = {
+    val pt1distOpt = nearestPointOnRoute(route, pt1).map(_.distanceTo(pt1))
+    val pt2distOpt = nearestPointOnRoute(route, pt2).map(_.distanceTo(pt2))
+    
+    if (pt1distOpt.isDefined && pt2distOpt.isDefined)
+      Some(estimateIntervals(
+        models.map(_.copyWithNewDistances(pt1distOpt.get, pt2distOpt.get)),
+        ivals))
+    else
+      None
+  }
+*/
   var log = false
   var segSize = 0.1 // 100 meters
  
@@ -153,11 +179,6 @@ class Estimator {
       nearestPointOnRoute(route.zip(route.tail), pt, None, minDist)
   }
 
-/*
- * for(minRtPt <- minRt) 
-                  yield(minRtPt.ref + 
-                        GIS.distanceCalculator(minRtPt.lat,minRtPt.lon,tgtPt.lat, tgtPt.lon))
-*/
 
   @tailrec
   final def nearestPointOnRoute(route: List[(RoutePoint,RoutePoint)], tgtPt: LatLon, minRt: Option[RoutePoint], minDist: Double):Option[RoutePoint] = route match {

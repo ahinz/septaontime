@@ -55,10 +55,12 @@ class Server(ld:RouteLoader) {
       println(" --> Trying route " + r)
       val routeData = ld.loadRoutePoints(Map("route_id" -> r.id.toString))
 
-      val rslt = e.distanceOnRoute(routeData,LatLon(bd1.lat,bd1.lon))
+      val ll1 = LatLon(bd1.lat, bd1.lon)
+      val ll2 = LatLon(bd1.lat, bd2.lon)
+      val rslt = e.nearestPointOnRoute(routeData, ll1).map(_.distanceTo(ll1))
 
       if (rslt.isDefined) {
-        val rslt2 = e.distanceOnRoute(routeData,LatLon(bd2.lat,bd2.lon))
+        val rslt2 = e.nearestPointOnRoute(routeData, ll2).map(_.distanceTo(ll2))
 
         if (rslt2.isDefined) {
           println("      Positive Match!")

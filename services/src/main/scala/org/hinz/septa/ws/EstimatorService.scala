@@ -94,7 +94,7 @@ object Worker {
 
     // Get the time between the start (as a "bus") to the finish point
     // using all possible intervals from the route
-    val pts:List[Either[String,List[BusEst]]] = rts.map(r => {
+    val pts:List[Option[List[BusEst]]] = rts.map(r => {
       println("  ** Processing route " + r)
       e.estimateNextBus(
         stop, 
@@ -106,7 +106,7 @@ object Worker {
 
     println("* Done processing!")
 
-    val finalEst:List[BusEst] = pts.filter(_.isRight).map(_.right.get).flatten
+    val finalEst:List[BusEst] = pts.filter(_.isDefined).map(_.get).flatten
 
     println("Processed times: ")
     println(finalEst)
@@ -132,7 +132,7 @@ object Worker {
     println("* Found " + live.length + " possible enroute buses")
 
     // Grab estimates for each route:
-    val pts:List[Either[String,List[BusEst]]] = rts.map(r => {
+    val pts:List[Option[List[BusEst]]] = rts.map(r => {
       println("  ** Processing route " + r)
       e.estimateNextBus(
         station, 
@@ -144,7 +144,7 @@ object Worker {
 
     println("* Done processing!")
 
-    val finalEst:List[BusEst] = pts.filter(_.isRight).map(_.right.get).flatten
+    val finalEst:List[BusEst] = pts.filter(_.isDefined).map(_.get).flatten
     
     println(finalEst)
 

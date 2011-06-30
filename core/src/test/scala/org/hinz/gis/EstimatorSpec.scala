@@ -83,8 +83,8 @@ class EstimatorSpec extends Spec with ShouldMatchers {
     describe("Reduction") {
       it("should be able to reduce zero intervals to a valid date") {
         val e = new Estimator()
-        e.reduceIntervalsToDate(0, Nil) should equal(Nil)
-        e.reduceIntervalsToDate(0, List(Nil)) should equal(Nil)
+        e.reduceIntervalsToMinuteOffset(Nil) should equal(Nil)
+        e.reduceIntervalsToMinuteOffset(List(Nil)) should equal(Nil)
       }
 
       it("should be able to reduce simple intervals") {
@@ -97,9 +97,9 @@ class EstimatorSpec extends Spec with ShouldMatchers {
         val minOffsetMils = - 1000*60 * minOffset
 
         // Times are in seconds
-        e.reduceIntervalsToDate(0, List(List(5.0))) should equal(List(new Date(nowDate + 5000)))
-        e.reduceIntervalsToDate(minOffset, List(List(5.0))) should equal(List(
-          new Date(nowDate + 5000 + minOffsetMils)))
+        e.reduceIntervalsToMinuteOffset(
+          List(List(5.0))) should equal(List(5.0/60.0))
+
       }
 
       it("should be able to reduce multiple intervals") {
@@ -109,9 +109,9 @@ class EstimatorSpec extends Spec with ShouldMatchers {
         }
 
         val list1 = List(5.0,2.0,5.0,4.0,2.2,3.1)
-        val list1sum = list1.reduceLeft(_+_)
+        val list1sum = list1.reduceLeft(_+_) / 60.0
         val list2 = List(1.2,5.0,2.4,9.9,2.5,2.2) // 6 elmts
-        val list2sum = list2.reduceLeft(_+_)
+        val list2sum = list2.reduceLeft(_+_) / 60.0
         val lst:List[List[Double]] = for(j <- (0 until list1.size).toList)
           yield List(list1(j), list2(j))
 
@@ -119,15 +119,16 @@ class EstimatorSpec extends Spec with ShouldMatchers {
         val minOffsetMils = - 1000*60 * minOffset
 
         // Times are in seconds
-        e.reduceIntervalsToDate(minOffset, lst) should equal(List(
-          new Date((nowDate + list1sum * 1000 + minOffsetMils).toLong),
-          new Date((nowDate + list2sum * 1000 + minOffsetMils).toLong)))
+        e.reduceIntervalsToMinuteOffset(lst) should equal(List(list1sum, list2sum))
       }
 
     }
 
     def mkRoutePt(lat: Double, lon: Double, ref: Double) =
       RoutePoint(0, 0, lat, lon, ref)
+
+    def mkBusRec(lat: Double, lon: Double) =
+      BusRecord(lat.toString, lon.toString, null, null, null, null, null, null)
 
     describe("Route matching") {
       it ("should be able to tell if a point is in the bounding box") {
@@ -190,11 +191,32 @@ class EstimatorSpec extends Spec with ShouldMatchers {
       }
     }
 
-    it ("should be able to estimate the next bus") {
-      pending
+    describe("bus times estimates") {
+      it ("should be able to fail gracefully if a station, or bus is not on the route") {
+        // Cheat and use flat coord system
+        GIS.distanceCalculator = GIS.flatDistanceCalculator
+
+        val e = new Estimator()
+
+        val model = null
+
+        // Bad station
+        e.estimateNextBus(LatLon(10,10), 
+                          List(mkRoutePt(200,200,10),mkRoutePt(250,250,20)),
+                          List(mkBusRec(200,200)),
+                          List(model),
+                          Nil) should equal(None)
+
+      }
+
+      it ("should properly estimate a simple simulation") {
+        pending
+      }
+
+      it ("should properly estimate a more complex simulation") {
+        pending
+      }
     }
 
   }
-
-
 }
