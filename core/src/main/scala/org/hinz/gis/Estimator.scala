@@ -11,8 +11,8 @@ case class LatLon(lat:Double,lon:Double) {
 }
 
 
-case class BusEst(blockId: String, busId: String, station: LatLon, origOffset: Double, offset: Double, arrival: List[Date]) {
-  def arrival(v: List[Date]):BusEst = BusEst(blockId, busId, station, origOffset, offset, v)
+case class BusEst(blockId: String, busId: String, station: LatLon, origOffset: Double, offset: Double, arrival: List[Double]) {
+  def arrival(v: List[Double]):BusEst = BusEst(blockId, busId, station, origOffset, offset, v)
 }
 
 case class EstInterval(startDist: Double, endDist: Double, v: List[Double], t: List[Double])
@@ -34,8 +34,8 @@ class Estimator {
     if (ivals.size == 0 || dist < 0) // No Data... not sure what to do here?
       badSpeedData(dist) // just guess 10 mph.
     else {
+
       val spd = ivals.map(_.velocity).reduceLeft(_ + _) / ivals.size.toDouble
-      printlg("spd @ ival: " + spd + " | " + ivals.size + " | " + ivals.take(3))
 
       if (spd == 0)
         badSpeedData(dist)
@@ -51,8 +51,14 @@ class Estimator {
     val prunedIntervals = allIntervals.zip(models).map(m =>
       m._1.filter(iv => m._2.usesInterval(iv) && iv.overlaps(interval._1, interval._2)))
 
+    println("\n\t" + models)
+    println("\tpival: " + prunedIntervals)
+    println("\tival: " + interval)
+
     //@todo Weighted avg by date!
     val spdAndTimes = prunedIntervals.map(intervals => getSpeedAndTime(dist, intervals.filter(x => x.start <= interval._2 && x.end >= interval._1)))
+
+    println("\tspdtms: " + spdAndTimes + "\n")
 
     EstInterval(interval._1, 
 		interval._2, 
@@ -70,6 +76,10 @@ class Estimator {
 		           m) 
 
   def estimateIntervals(targetIntervals: List[(Double,Double)], measuredIntervals: List[List[Interval]], models: List[Model]) = {
+    println("Got here....")
+    println(targetIntervals)
+    println(measuredIntervals)
+    println("Actually estimating...")
     targetIntervals.map(tgt => estimateInterval(tgt, measuredIntervals, models))
   }
 
@@ -98,7 +108,7 @@ class Estimator {
       r.Offset.toDouble,
       aDist,
       null))
-    case _ => None
+    case _ => { println("|> " + dist); None }
   }
       
   /**
@@ -111,6 +121,25 @@ class Estimator {
    * @return List of bus estimates
    */
   //@todo test me!
+  def estimateNextBus(sref: Double, busEst: BusEst, models: List[Model], ivals:List[Interval]) =
+    busEst.arrival(
+      reduceIntervalsToMinuteOffset(
+        estimateIntervals(models.map(_.copyWithNewDistances(busEst.offset, sref)), ivals)).map(
+          _ - busEst.origOffset.toDouble))
+
+
+  def estimateNextBus(station: LatLon, sref: Double, bus: BusRecord, route: List[RoutePoint], models: List[Model], ivals:List[Interval]): Option[BusEst] = {
+    
+    val best = createBusEst(station, sref, bus,
+                 nearestPointOnRoute(
+                   route,
+                   bus.toLatLon).map(
+                     _.distanceTo(bus.toLatLon)))
+
+    best.map(est => estimateNextBus(sref, est, models, ivals))
+  }
+                                          
+
   def estimateNextBus(station: LatLon, route:List[RoutePoint], buses: List[BusRecord], models: List[Model], ivals:List[Interval]):Option[List[BusEst]] = {
     
     // Determine linear ref for the station
@@ -119,6 +148,12 @@ class Estimator {
     if (nearestPt.isDefined) {
       val sref = nearestPt.get.distanceTo(station)
 
+      Some(buses.map(estimateNextBus(station, sref, _, route, models, ivals)).flatten)
+    } else {
+      None
+    }
+
+/*
       // Convert each bus to a linear ref and discard busses
       // that have already arrived at the destination
       val brefs:List[BusEst] = buses.flatMap(bus =>
@@ -130,6 +165,9 @@ class Estimator {
                        bus.toLatLon).map(
                          _.distanceTo(station))))
       
+      println("----->")
+      println(brefs)
+
       // Convert from time offset (in seconds) to a data
       // also substract original delay (in minutes)
       Some(brefs.map(x => 
@@ -137,11 +175,12 @@ class Estimator {
 	  reduceIntervalsToMinuteOffset(
             estimateIntervals(models.map(
               _.copyWithNewDistances(x.offset, sref)), ivals)).map(t => 
-                new Date((t.toLong - x.origOffset.toInt)* 60*1000L + now)))).sortWith(
-                  _.arrival.head.getTime < _.arrival.head.getTime))
+                (t.toDouble - x.origOffset.toDouble)* 60.0*1000.0 + now.toDouble))).sortWith(
+                  _.arrival.head < _.arrival.head))
     } else {
       None
     }
+    * */
   }
     
 /*
@@ -188,8 +227,12 @@ class Estimator {
         var newMinDist = GIS.minDistance((tgtPt.lon,tgtPt.lat), 
                                          GIS.computeLine(x._1.lon,x._1.lat,x._2.lon,x._2.lat))
 
-        if (newMinDist <= minDist)
-          nearestPointOnRoute(xs, tgtPt, Some(x._1), newMinDist)
+        println(route + " // " + tgtPt)
+        println(newMinDist + " | " + minDist)
+
+        if (newMinDist <= minDist) {
+          println("SELECT")
+          nearestPointOnRoute(xs, tgtPt, Some(x._1), newMinDist) }
         else
           nearestPointOnRoute(xs, tgtPt, minRt, minDist)
       } else

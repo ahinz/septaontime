@@ -127,8 +127,8 @@ class EstimatorSpec extends Spec with ShouldMatchers {
     def mkRoutePt(lat: Double, lon: Double, ref: Double) =
       RoutePoint(0, 0, lat, lon, ref)
 
-    def mkBusRec(lat: Double, lon: Double) =
-      BusRecord(lat.toString, lon.toString, null, null, null, null, null, null)
+    def mkBusRec(lat: Double, lon: Double, offset: String = "0") =
+      BusRecord(lat.toString, lon.toString, null, null, null, null, null, offset)
 
     describe("Route matching") {
       it ("should be able to tell if a point is in the bounding box") {
@@ -210,7 +210,34 @@ class EstimatorSpec extends Spec with ShouldMatchers {
       }
 
       it ("should properly estimate a simple simulation") {
-        pending
+        val e = new Estimator()
+        val m = new Model(0, 10.0, 0, (new Date(0L), None), Model.time24h, (0.0,100.0))
+
+        // Cheat and use flat coord system
+        GIS.distanceCalculator = GIS.flatDistanceCalculator
+
+        val busRec = mkBusRec(0,10)
+        val route = List(
+          mkRoutePt(0,10,10),
+          mkRoutePt(1,100,100))
+
+        val ivals = List(
+          createInterval(0,10,10),
+          createInterval(10,20,10),
+          createInterval(20,30,10),
+          createInterval(30,40,10),
+          createInterval(40,50,10),
+          createInterval(50,60,10),
+          createInterval(60,70,10),
+          createInterval(70,80,10),
+          createInterval(80,90,10),
+          createInterval(90,100,10))
+
+        val est = e.estimateNextBus(LatLon(1,98), 100.0, busRec, route, List(m), ivals)
+
+        println(est)
+        est.isDefined should equal(true)
+        est.get.arrival should equal(List(1.5))
       }
 
       it ("should properly estimate a more complex simulation") {
