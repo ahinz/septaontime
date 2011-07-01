@@ -51,14 +51,8 @@ class Estimator {
     val prunedIntervals = allIntervals.zip(models).map(m =>
       m._1.filter(iv => m._2.usesInterval(iv) && iv.overlaps(interval._1, interval._2)))
 
-    println("\n\t" + models)
-    println("\tpival: " + prunedIntervals)
-    println("\tival: " + interval)
-
     //@todo Weighted avg by date!
     val spdAndTimes = prunedIntervals.map(intervals => getSpeedAndTime(dist, intervals.filter(x => x.start <= interval._2 && x.end >= interval._1)))
-
-    println("\tspdtms: " + spdAndTimes + "\n")
 
     EstInterval(interval._1, 
 		interval._2, 
@@ -73,10 +67,6 @@ class Estimator {
 		           m) 
 
   def estimateIntervals(targetIntervals: List[(Double,Double)], measuredIntervals: List[List[Interval]], models: List[Model]) = {
-    println("Got here....")
-    println(targetIntervals)
-    println(measuredIntervals)
-    println("Actually estimating...")
     targetIntervals.map(tgt => estimateInterval(tgt, measuredIntervals, models))
   }
 
@@ -103,7 +93,7 @@ class Estimator {
       r.Offset.toDouble,
       aDist,
       null))
-    case _ => { println("|> " + dist); None }
+    case _ => None
   }
       
   /**
@@ -180,12 +170,8 @@ class Estimator {
         var newMinDist = GIS.minDistance((tgtPt.lon,tgtPt.lat), 
                                          GIS.computeLine(x._1.lon,x._1.lat,x._2.lon,x._2.lat))
 
-        println(route + " // " + tgtPt)
-        println(newMinDist + " | " + minDist)
-
-        if (newMinDist <= minDist) {
-          println("SELECT")
-          nearestPointOnRoute(xs, tgtPt, Some(x._1), newMinDist) }
+        if (newMinDist <= minDist) 
+          nearestPointOnRoute(xs, tgtPt, Some(x._1), newMinDist) 
         else
           nearestPointOnRoute(xs, tgtPt, minRt, minDist)
       } else
