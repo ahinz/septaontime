@@ -159,19 +159,6 @@ object Worker {
 
 }
       
-object JSONP {
-  def apply(callback: String, body: String) = 
-    jsonp(callback, body)
-
-  def wrapJSONP(callback: String, body: String) =
-    if (callback != null && callback.length > 0) callback + "(" + body + ")"
-    else body
-
-  def jsonp(callback: String, body: String) =
-    HttpContent(
-      ContentType(`application/json`),
-      wrapJSONP(callback, body))
-}
 
 trait HelloServiceBuilder extends ServiceBuilder {
   implicit val formats = Serialization.formats(NoTypeHints)
@@ -220,46 +207,6 @@ trait HelloServiceBuilder extends ServiceBuilder {
                     Worker.getIntervals(route_id.toInt, seg_size_km.toDouble, num_segs.toInt)))
           }
       }
-    } ~
-    pathPrefix("route") {
-      path("routes") {
-        parameter('callback ?) {
-          callback =>
-            get {
-              _.complete(jsonp(callback, 
-                               write(FixedDataLoader.getRoutes)))
-            }
-        }
-      } ~ path("directions") {
-        parameters('callback ?, 'route) {
-          (callback, route) =>
-            get {
-              _.complete(jsonp(callback,
-                               write(FixedDataLoader.getDirections(route).getOrElse(Map("error" -> "unexpected error - this route may not exist!")))))
-            }
-        }
-      } ~ path("stations") {
-        parameters('callback ?, 'route, 'direction) {
-          (callback, route, direction) =>
-            get {
-              _.complete(jsonp(callback,
-                               write(findStations(route,direction) match {
-                                 case Some(x) => x
-                                 case None => Map("error" -> "station not found")
-                               })))
-            }
-        }
-      }
     }
-  }
-  
-  def findStations(route: String, dir: String):Option[List[GTFSLoader.Station]] =
-    FixedDataLoader.getStations(route, dir).map(tupleList =>
-      tupleList.map(_ match {
-        case (routeid, desc) => GTFSLoader.stations.get(routeid)
-        case _ => None
-      }).flatten)
-
-      
-  
+  }   
 }

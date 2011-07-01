@@ -5,7 +5,7 @@ import org.ccil.cowan.tagsoup.jaxp._
 import scala.xml._
 import java.io._
 
-object FixedDataLoader {
+class FixedDataLoader {
 
   case class Route(route: String, directionID: String, name: String)
 
