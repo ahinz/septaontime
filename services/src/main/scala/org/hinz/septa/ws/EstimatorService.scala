@@ -74,7 +74,7 @@ object Worker {
     val ivals = ld.loadIntervals(routeId)
     val model = Model(routeId, segSizeKm, numSegs, (yesterday, Some(today)),  (midnight_am, midnight_pm), (0, ivals.map(_.end).max(Ordering[Double])))
 
-    write(fillOut(routeId, e.estimateIntervals(model, ivals)))
+    write(fillOut(routeId, e.estimateIntervals(List(model), ivals)))
   }
 	
 
@@ -114,7 +114,7 @@ object Worker {
     // Remove duplciates:
     //TODO: This should be moved to the estimateNextBus method
     write(finalEst.groupBy(x => x.blockId + "." + x.busId).map(k => k._2.head).toList.sortWith(
-      _.arrival.head.getTime > _.arrival.head.getTime) match {
+      _.arrival.head > _.arrival.head) match {
       case x::xs => Map("arrival" -> x.arrival)
       case _ => Map[String,String]()
     })
@@ -151,7 +151,7 @@ object Worker {
     // Remove duplciates:
     //TODO: This should be moved to the estimateNextBus method
     write(finalEst.groupBy(x => x.blockId + "." + x.busId).map(k => k._2.head).toList.sortWith(
-      _.arrival.head.getTime < _.arrival.head.getTime))
+      _.arrival.head < _.arrival.head))
     
 
 //    write(finalEst)

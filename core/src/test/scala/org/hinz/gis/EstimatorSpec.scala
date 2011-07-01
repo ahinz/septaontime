@@ -5,8 +5,7 @@ import org.hinz.septa._
 import org.hinz.gis._
 
 import java.util.{Date,Calendar}
-
-
+import java.awt.geom.Point2D
 
 class EstimatorSpec extends Spec with ShouldMatchers {
   
@@ -90,7 +89,7 @@ class EstimatorSpec extends Spec with ShouldMatchers {
       it("should be able to reduce simple intervals") {
         val nowDate = new Date().getTime()
         val e = new Estimator() {
-          override def now = nowDate
+//          override def now = nowDate
         }
 
         val minOffset = 12
@@ -105,7 +104,7 @@ class EstimatorSpec extends Spec with ShouldMatchers {
       it("should be able to reduce multiple intervals") {
         val nowDate = new Date().getTime()
         val e = new Estimator() {
-          override def now = nowDate
+//          override def now = nowDate
         }
 
         val list1 = List(5.0,2.0,5.0,4.0,2.2,3.1)
@@ -207,9 +206,16 @@ class EstimatorSpec extends Spec with ShouldMatchers {
                           List(model),
                           Nil) should equal(None)
 
+        // Valid station empt, invalid buses
+        e.estimateNextBus(LatLon(200,200), 
+                          List(mkRoutePt(200,200,10),mkRoutePt(250,250,20)),
+                          List(mkBusRec(10,10)),
+                          List(model),
+                          Nil) should equal(Some(List()))
+
       }
 
-      it ("should properly estimate a simple simulation") {
+      it ("should properly estimate a constant velocity interval set") {
         val e = new Estimator()
         val m = new Model(0, 10.0, 0, (new Date(0L), None), Model.time24h, (0.0,100.0))
 
@@ -221,7 +227,7 @@ class EstimatorSpec extends Spec with ShouldMatchers {
           mkRoutePt(0,10,10),
           mkRoutePt(1,100,100))
 
-        val ivals = List(
+        var ivals = List(
           createInterval(0,10,10),
           createInterval(10,20,10),
           createInterval(20,30,10),
@@ -233,17 +239,72 @@ class EstimatorSpec extends Spec with ShouldMatchers {
           createInterval(80,90,10),
           createInterval(90,100,10))
 
-        val est = e.estimateNextBus(LatLon(1,98), 100.0, busRec, route, List(m), ivals)
+        var est = e.estimateNextBus(LatLon(1,98), 100.0, busRec, route, List(m), ivals)
 
-        println(est)
         est.isDefined should equal(true)
         est.get.arrival should equal(List(1.5))
+
+        // Interval size should not matter with constant v
+        ivals = List(
+          createInterval(0,20,20),
+          createInterval(10,20,10),
+          createInterval(20,40,20),
+          createInterval(30,40,10),
+          createInterval(40,60,20),
+          createInterval(50,60,10),
+          createInterval(60,90,30),
+          createInterval(70,80,10),
+          createInterval(80,160,80),
+          createInterval(90,100,10),
+          createInterval(110,120,1000)) // Should be ignored
+
+        est = e.estimateNextBus(LatLon(1,98), 100.0, busRec, route, List(m), ivals)
+
+        est.isDefined should equal(true)
+        est.get.arrival should equal(List(1.5))
+
       }
 
-      it ("should properly estimate a more complex simulation") {
-        pending
+      it ("should properly estimate a non-constant velocity set") {
+        val e = new Estimator()
+        val m = new Model(0, 10.0, 0, (new Date(0L), None), Model.time24h, (0.0,100.0))
+
+        // Cheat and use flat coord system
+        GIS.distanceCalculator = GIS.flatDistanceCalculator
+
+        val busRec = mkBusRec(0,10)
+        val route = List(
+          mkRoutePt(0,10,10),
+          mkRoutePt(1,100,100))
+
+        //@todo - this is a fake test right now
+        var ivals = List(
+          createInterval(0,10,10),
+          createInterval(10,20,10),
+          createInterval(20,30,10),
+          createInterval(30,40,10),
+          createInterval(40,50,10),
+          createInterval(50,60,10),
+          createInterval(60,70,10),
+          createInterval(70,80,10),
+          createInterval(80,90,10),
+          createInterval(90,100,10))
+
+        var est = e.estimateNextBus(LatLon(1,98), 100.0, busRec, route, List(m), ivals)
+
+        est.isDefined should equal(true)
+        est.get.arrival should equal(List(1.5))
+
       }
     }
 
+  }
+}
+
+class LatLonSpec extends Spec with ShouldMatchers {
+  describe("lat/lon") {
+    it("shoube be able to convert to a flat coord system") {
+      LatLon(10,5).toPoint2D should equal(new Point2D.Double(5,10))
+    }
   }
 }

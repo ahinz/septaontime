@@ -66,9 +66,6 @@ class Estimator {
 		spdAndTimes.map(_._2))		
   }
 
-  def estimateIntervals(m: Model, intervals: List[Interval]):List[EstInterval] =
-    estimateIntervals(List(m), intervals)
-
   def estimateIntervals(m: List[Model], intervals: List[Interval]):List[EstInterval] =
     if (m.size == 0) Nil
     else estimateIntervals(m.head.createOutputIntervals(),
@@ -82,8 +79,6 @@ class Estimator {
     println("Actually estimating...")
     targetIntervals.map(tgt => estimateInterval(tgt, measuredIntervals, models))
   }
-
-  def now:Long = new Date().getTime
 
   //@todo is kind of odd that each bus est contains many positions for each model
   def reduceIntervalsToMinuteOffset(evals: List[EstInterval]):List[Double] =
@@ -152,50 +147,8 @@ class Estimator {
     } else {
       None
     }
-
-/*
-      // Convert each bus to a linear ref and discard busses
-      // that have already arrived at the destination
-      val brefs:List[BusEst] = buses.flatMap(bus =>
-        createBusEst(station, 
-                     sref, 
-                     bus, 
-                     nearestPointOnRoute(
-                       route, 
-                       bus.toLatLon).map(
-                         _.distanceTo(station))))
-      
-      println("----->")
-      println(brefs)
-
-      // Convert from time offset (in seconds) to a data
-      // also substract original delay (in minutes)
-      Some(brefs.map(x => 
-        x.arrival(
-	  reduceIntervalsToMinuteOffset(
-            estimateIntervals(models.map(
-              _.copyWithNewDistances(x.offset, sref)), ivals)).map(t => 
-                (t.toDouble - x.origOffset.toDouble)* 60.0*1000.0 + now.toDouble))).sortWith(
-                  _.arrival.head < _.arrival.head))
-    } else {
-      None
-    }
-    * */
   }
     
-/*
-  def estimateTimeBetweenPoints(pt1: LatLon, pt2:LatLon, route: List[RoutePoint], models:List[Model], ivals:List[Interval]):Option[List[EstInterval]] = {
-    val pt1distOpt = nearestPointOnRoute(route, pt1).map(_.distanceTo(pt1))
-    val pt2distOpt = nearestPointOnRoute(route, pt2).map(_.distanceTo(pt2))
-    
-    if (pt1distOpt.isDefined && pt2distOpt.isDefined)
-      Some(estimateIntervals(
-        models.map(_.copyWithNewDistances(pt1distOpt.get, pt2distOpt.get)),
-        ivals))
-    else
-      None
-  }
-*/
   var log = false
   var segSize = 0.1 // 100 meters
  
@@ -250,35 +203,4 @@ class Estimator {
     pt.lon >= minlon - fudgeLon && pt.lon <= maxlon + fudgeLon
   }
   
-/*
-  def distanceOnRoute(route: List[RoutePoint], pt:LatLon):Option[Double] = {
-    
-    // Determine if any route point pair could contain this interval
-    val minDist = 0.01
-
-    val m =
-      route.zip(route.tail).foldLeft((None:Option[(RoutePoint,RoutePoint)],minDist))((curmin,p) => {
-        val p1 = p._1
-        val p2 = p._2
-
-        if (boundingBoxContainsPt(p1,p2,pt,fudgelat, fudgeLon)) {
-          val minDist = GIS.minDistance((pt.lon,pt.lat),
-                                      GIS.computeLine(p1.lon,p1.lat,p2.lon,p2.lat))
-
-
-          if (minDist < curmin._2)
-            (Some((p1,p2)), minDist)
-          else
-            curmin
-        } else {
-          curmin
-        }
-      })
-   
-    m._1.map( p => p._1.ref + GIS.distanceCalculator(p._1.lat,p._1.lon,pt.lat,pt.lon) )
-  }
-*/
-  def printlg(x:String) = if (log) print(x)
-  def printlnlg(x:String) = if (log) println(x)
-
 }
