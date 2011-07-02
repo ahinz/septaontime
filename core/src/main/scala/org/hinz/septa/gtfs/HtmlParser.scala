@@ -5,9 +5,9 @@ import org.ccil.cowan.tagsoup.jaxp._
 import scala.xml._
 import java.io._
 
-class FixedDataLoader {
+case class RouteDir(route: String, directionID: String, name: String)
 
-  case class Route(route: String, directionID: String, name: String)
+class FixedDataLoader {
 
   val PROXY_KEY = "http.route.default-proxy"
 
@@ -60,7 +60,7 @@ class FixedDataLoader {
   }
     
 
-  def getDirections(route: String):Option[List[Route]] = {
+  def getDirections(route: String):Option[List[RouteDir]] = {
     val method = postMethodForRoute(route)
     val returnCode = client.executeMethod(method)
 
@@ -69,6 +69,13 @@ class FixedDataLoader {
     else
       None
   }
+
+  def findStations(route: String, dir: String):Option[List[GTFSLoader.Station]] =
+    getStations(route, dir).map(tupleList =>
+      tupleList.map(_ match {
+        case (routeid, desc) => GTFSLoader.stations.get(routeid)
+        case _ => None
+      }).flatten)
 
   val parserFactory = new SAXFactoryImpl
   val parser = parserFactory.newSAXParser()
@@ -89,9 +96,9 @@ class FixedDataLoader {
     }.flatten.toList
   }
 
-  def extractDirectionTags(r: String, s: String):List[Route] = {
+  def extractDirectionTags(r: String, s: String):List[RouteDir] = {
     (processHTMLDocument(s) \\ "option").map(e =>
-      Route(r, (e \ "@value").text, e.text)).toList
+      RouteDir(r, (e \ "@value").text, e.text)).toList
   }
 }
 

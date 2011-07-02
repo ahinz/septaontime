@@ -44,44 +44,37 @@ trait RouteServiceBuilder extends ServiceBuilder {
   val fixedDataLoader:FixedDataLoader
 
   val routeService = {
-    pathPrefix("route") {
-      path("routes") {
+    path("routes") {
+      parameter('callback ?) {
+        callback =>
+          get {
+            _.complete(jsonp(callback, 
+                             write(fixedDataLoader.getRoutes)))
+          }
+      }
+    } ~ pathPrefix("routes" / "[^/]*".r) { route =>
+      path("") {
         parameter('callback ?) {
-          callback =>
-            get {
-              _.complete(jsonp(callback, 
-                               write(fixedDataLoader.getRoutes)))
-            }
+          (callback) =>
+            get(ctxt => { 
+              fixedDataLoader.getDirections(route) match {
+                case Some(dirs) => ctxt.complete(
+                  jsonp(callback, write(dirs)))
+                case None => ctxt.fail(HttpStatusCodes.NotFound)
+              }
+            })
         }
-        //@todo - refactor for restful url
-      } ~ path("directions") {
-        parameters('callback ?, 'route) {
-          (callback, route) =>
-            get {
-              _.complete(jsonp(callback,
-                               write(fixedDataLoader.getDirections(route).getOrElse(Map("error" -> "unexpected error - this route may not exist!")))))
-            }
-        }
-      } ~ path("stations") {
-        parameters('callback ?, 'route, 'direction) {
-          (callback, route, direction) =>
-            get {
-              _.complete(jsonp(callback,
-                               write(findStations(route,direction) match {
-                                 case Some(x) => x
-                                 case None => Map("error" -> "station not found")
-                               })))
-            }
+      } ~ pathPrefix("[^/]*".r) { direction =>
+        parameter('callback ?) {
+          (callback) =>
+            get(ctxt => {
+              fixedDataLoader.findStations(route, direction) match {
+                case Some(stations) => ctxt.complete(jsonp(callback,write(stations)))
+                case None => ctxt.fail(HttpStatusCodes.NotFound)
+              }
+            })
         }
       }
     }
   }
-
-  def findStations(route: String, dir: String):Option[List[GTFSLoader.Station]] =
-    fixedDataLoader.getStations(route, dir).map(tupleList =>
-      tupleList.map(_ match {
-        case (routeid, desc) => GTFSLoader.stations.get(routeid)
-        case _ => None
-      }).flatten)
-
 }
