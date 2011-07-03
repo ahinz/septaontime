@@ -5,6 +5,7 @@ import org.ccil.cowan.tagsoup.jaxp._
 import scala.xml._
 import java.io._
 import org.hinz.septa._
+import scala.util.matching._
 
 case class RouteDir(route: String, directionID: String, name: String)
 
@@ -77,6 +78,17 @@ class FixedDataLoader {
         case (routeid, desc) => GTFSLoader.stations.get(routeid)
         case _ => None
       }).flatten)
+
+  def routesAtStation(stationId: String):List[String] = {
+    val text = scala.io.Source.fromURL("http://www3.septa.org/sms/" + stationId).mkString
+    
+    val lines:List[String] = text.split("\n").toList
+    val routes = 
+      for(linen <- (1 until lines.size).toList)
+        yield(lines(linen).split(" ")(2))
+
+    routes.distinct
+  }    
 
   val parserFactory = new SAXFactoryImpl
   val parser = parserFactory.newSAXParser()

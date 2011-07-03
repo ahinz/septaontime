@@ -24,8 +24,7 @@ import JSONP._
  * Routes:
  * /station/1492                 - Return info about station #1492
  * /station/1492/bus/44/east     - Return bus estimates for route 44 at stop #1492 going east
- * /station/1492/to/2522/44/west - Return bus estimates for from station 1492 to 2522 going
- *                                 west using samples from route 44
+ * /station/1492/to/2522/west    - Return bus estimates from station 1492 to 2522 going west
  *
  * For the last two you can specify the following additional model params [default]:
  * segmentSizeKm              - Size of the summary segment (must be > 0.1) [0.1]
@@ -63,7 +62,7 @@ trait StationServiceBuilder extends ServiceBuilder {
             })
         }
       } ~
-      pathPrefix("to" / "\\d+".r / "[^/]+".r / "[^/]+".r) { (endStation, route, direction) =>
+      pathPrefix("to" / "\\d+".r / "[^/]+".r) { (endStation, direction) =>
         path("") {
           parameter('callback ?) {
             callback => 
@@ -79,15 +78,20 @@ trait StationServiceBuilder extends ServiceBuilder {
                     val station1 = loader.loadStation(stationId.toInt)                    
                     val station2 = loader.loadStation(endStation.toInt)
 
+                    val possibleRoutes1 = fixedDataLoader.routesAtStation(stationId)
+                    val possibleRoutes2 = fixedDataLoader.routesAtStation(endStation)
+
+                    val possibleRoutes = possibleRoutes1.intersect(possibleRoutes2)
+
+                    println("* Found possible route numbers: " + possibleRoutes)
+
                     if (station1 == Nil || station2 == Nil) {
                       ctxt.fail(HttpStatusCodes.NotFound)
                     } else {
-                      val routes = loader.loadRoutes(
-                        Map("shortname" -> route,
-                            "direction" -> d.db))                      
+                      val routes = loader.loadRoutes(possibleRoutes, d.db)
                       
                       println("* Found " + routes.length + " routes at this station")
-                      println("Picking 1st route: " + routes.head)
+                      println("\t* Picking 1st route: " + routes.head)
 
                       val tgtRoute = routes.head
 
@@ -115,7 +119,9 @@ trait StationServiceBuilder extends ServiceBuilder {
                         intervals)
 
                       println("Estimate: " + est)
-                      ctxt.complete("hurray")
+                      ctxt.complete(jsonp(callback,
+                                          write(est.map(ivalList =>
+                                            ivalList.map(busEst => busEst.arrival.head)).getOrElse(List()))))
                     }
                   })
               }

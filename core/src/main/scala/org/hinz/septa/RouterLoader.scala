@@ -80,6 +80,11 @@ class RouteLoader(db: String) {
     runStatement(stmt =>
       exhaustResultSet(stmt.executeQuery(sel), f)) getOrElse List()}
 
+  def loadRoutes(routes: List[String], direction: String) =
+    loadWithBuilder("select * from route where shortname in (\"" + 
+                    routes.mkString("\",\"") + "\") and direction=\"" +
+                    direction + "\"", buildRoute _)
+
   def loadRoutes(where: Map[String,String] = null):List[Route] = 
     loadWithBuilder("select * from route" + buildWhereClause(where), buildRoute _)
 
