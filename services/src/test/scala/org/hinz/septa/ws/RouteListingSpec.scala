@@ -28,9 +28,9 @@ class RouteListingSpec extends Spec with ShouldMatchers with SprayTest with Rout
   val dirs = List(dir44w,dir44e)
 
   val stations = List(
-    GTFSLoader.Station("10","st1","1.1","2.2"),
-    GTFSLoader.Station("11","st2","1.2","2.3"),
-    GTFSLoader.Station("12","st3","1.3","2.4"))
+    Station("10","st1","1.1","2.2"),
+    Station("11","st2","1.2","2.3"),
+    Station("12","st3","1.3","2.4"))
 
   def station2map(s: GTFSLoader.Station):Map[String,String] =
     Map("id" -> s.id, "name" -> s.name, "lat" -> s.lat, "lon" -> s.lon)

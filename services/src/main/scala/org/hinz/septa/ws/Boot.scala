@@ -7,6 +7,8 @@ import cc.spray._
 import utils.ActorHelpers._
 
 import org.hinz.septa.gtfs._
+import org.hinz.gis._
+import org.hinz.septa._
 
 class Boot {
   
@@ -14,8 +16,10 @@ class Boot {
     // bake your module cake here
   }
 
-  val routeModule = new RouteServiceBuilder {
+  val routeModule = new RouteServiceBuilder with StationServiceBuilder {
     val fixedDataLoader = new FixedDataLoader()
+    val loader = new RouteLoader("devdb.db")
+    val estimator = new Estimator()
   }
   
   // start the root service actor (and any service actors you want to specify supervision details for)
@@ -33,5 +37,6 @@ class Boot {
   actor[RootService] ! Attach(HttpService(mainModule.nextBusService))
   actor[RootService] ! Attach(HttpService(mainModule.routeService))
   actor[RootService] ! Attach(HttpService(routeModule.routeService))
+  actor[RootService] ! Attach(HttpService(routeModule.stationService))
 
 }

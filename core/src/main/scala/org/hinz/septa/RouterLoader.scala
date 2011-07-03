@@ -48,6 +48,9 @@ class RouteLoader(db: String) {
   // Sun May 08 17:13:07 EDT 2011
   val format = new SimpleDateFormat("EEE MMM dd HH:mm:ss z yyyy")
 
+  def buildStation(rs: ResultSet) =
+    Station(rs.getString("id"), rs.getString("name"), rs.getString("lat"), rs.getString("lon"))
+
   def buildInterval(rs: ResultSet) =
     Interval(rs.getInt("id"), rs.getInt("route_id"), rs.getInt("route_data_id1"),rs.getInt("route_data_id2"),rs.getDouble("start_ref"),rs.getDouble("end_ref"),format.parse(rs.getString("recordedAt")),rs.getDouble("time"))
 
@@ -85,6 +88,11 @@ class RouteLoader(db: String) {
 
   def loadRoutePoints(where: Map[String,String] = null):List[RoutePoint] =
     loadWithBuilder("select * from route_data " + buildWhereClause(where), buildRoutePoint _)
+
+  def loadStation(station: Int) = {
+    val stmt = "select * from stations where id=" + station
+    loadWithBuilder(stmt, buildStation _)
+  }
 
   def loadIntervalsWhere(where: String) =
     loadWithBuilder("select * from interval_data where " + where, buildInterval _)

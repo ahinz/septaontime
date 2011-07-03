@@ -4,6 +4,7 @@ import org.apache.commons.httpclient._, methods._, params._, cookie._, protocol.
 import org.ccil.cowan.tagsoup.jaxp._
 import scala.xml._
 import java.io._
+import org.hinz.septa._
 
 case class RouteDir(route: String, directionID: String, name: String)
 
@@ -70,7 +71,7 @@ class FixedDataLoader {
       None
   }
 
-  def findStations(route: String, dir: String):Option[List[GTFSLoader.Station]] =
+  def findStations(route: String, dir: String):Option[List[Station]] =
     getStations(route, dir).map(tupleList =>
       tupleList.map(_ match {
         case (routeid, desc) => GTFSLoader.stations.get(routeid)

@@ -10,6 +10,16 @@ import org.hinz.gis._
  */
 
 /**
+ * A Bus Station
+ *
+ * @param id station id (unique integer)
+ * @param name name of the station
+ * @param lat
+ * @param lon
+ */ 
+case class Station(id: String, name: String, lat: String, lon: String)
+
+/**
  * Represents bus data scraped from the septa server
  *
  * @param id Database ID
@@ -47,6 +57,10 @@ object DirectionFactory {
     case "s" => Some(South)
     case "e" => Some(East)
     case "w" => Some(West)
+    case "north" => Some(North)
+    case "south" => Some(South)
+    case "west" => Some(West)
+    case "east" => Some(East)
     case "Northbound" => Some(North)
     case "Southbound" => Some(South)
     case "Eastbound" => Some(East)

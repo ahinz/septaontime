@@ -1,11 +1,11 @@
 package org.hinz.septa.gtfs
 
+import org.hinz.septa._
+
 import java.io._
 import scala.annotation.tailrec
 
 object GTFSLoader {
-  
-  case class Station(id: String, name: String, lat: String, lon: String)
 
   private val rsrc:BufferedReader = new BufferedReader(new InputStreamReader(getClass().getResourceAsStream("/org/hinz/septa/gtfs/stops.txt")))
   rsrc.readLine() // Dump header row... we know what's up
