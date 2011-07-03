@@ -79,6 +79,7 @@ class FixedDataLoader {
         case _ => None
       }).flatten)
 
+  //@todo - this should use GTFS data instead of sms
   def routesAtStation(stationId: String):List[String] = {
     val text = scala.io.Source.fromURL("http://www3.septa.org/sms/" + stationId).mkString
     

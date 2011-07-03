@@ -40,12 +40,22 @@ trait StationServiceBuilder extends ServiceBuilder {
   val loader: RouteLoader
   val estimator: Estimator
 
-  def parseTime(time: String) = {
+  def parseTime(time: String) =  {
     val c = Calendar.getInstance()
     val parts = time.split(":")
-    c.set(Calendar.HOUR_OF_DAY, parts(0).toInt)
-    c.set(Calendar.MINUTE, parts(1).toInt)
-    c.getTime()
+    if (parts.length == 1) { // Assume this is a double
+      val hours = time.toDouble.toInt
+      val minutesFrac = time.toDouble - hours
+      val minutes = minutesFrac * 60.0
+
+      c.set(Calendar.HOUR_OF_DAY, hours)
+      c.set(Calendar.MINUTE, minutes.toInt)
+      c.getTime()      
+    } else {
+      c.set(Calendar.HOUR_OF_DAY, parts(0).toInt)
+      c.set(Calendar.MINUTE, parts(1).toInt)
+      c.getTime()
+    }
   }
 
   val stationService = {
@@ -80,6 +90,11 @@ trait StationServiceBuilder extends ServiceBuilder {
 
                     val possibleRoutes1 = fixedDataLoader.routesAtStation(stationId)
                     val possibleRoutes2 = fixedDataLoader.routesAtStation(endStation)
+
+                    println("* Station 1 routes:")
+                    println("\t" + possibleRoutes1)
+                    println("* Station 2 routes:")
+                    println("\t" + possibleRoutes2)
 
                     val possibleRoutes = possibleRoutes1.intersect(possibleRoutes2)
 
