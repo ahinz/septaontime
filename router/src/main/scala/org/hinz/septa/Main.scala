@@ -2,6 +2,7 @@ package org.hinz.septa
 
 import org.hinz.septa.RouteCreator._
 import org.hinz.septa.Routes._
+import org.hinz.septa.gtfs._
 
 import scala.swing._
 
@@ -17,19 +18,38 @@ object Main {
     
     log("Starting to clean the database...")
 
+/*
     ld.runStatement(stmt => {
       stmt.executeUpdate("delete from route")
       stmt.executeUpdate("delete from route_data")
       stmt.executeUpdate("delete from interval_data")
       stmt.executeUpdate("delete from bus_data")
     })
-
+*/
     logln("done")
 
+    try {
+      ld.runStatement(stmt => {
+        stmt.executeUpdate("drop table stations")
+      })
+    } catch {
+      case e:Exception => println("--- stations table does not exist")
+    }
 
+    ld.runStatement(stmt => {
+      stmt.executeUpdate("create table stations (id int, name string, lat string, lon string)")
+      stmt.executeUpdate("create index stationId on stations (id)")
+      GTFSLoader.stations.values map(s =>
+        stmt.executeUpdate(
+          "insert into stations values (" + s.id.toInt + ", \"" + 
+          s.name + "\",\"" + s.lat + "\",\"" + s.lon + "\")"))
+    })
+
+/*
     Routes.route44.map(r => {
       logln("Trying to create route " + r)
       createRoute(r, ld)})                  
+*/
 /*
     val top = new MainFrame {
       size = new java.awt.Dimension(1000,600)
