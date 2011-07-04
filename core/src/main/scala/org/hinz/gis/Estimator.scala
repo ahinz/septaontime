@@ -27,15 +27,24 @@ case class EstInterval(startDist: Double, endDist: Double, v: List[Double], t: L
  */
 class Estimator { 
 
+  def one(d: Long):Double = 1.0
+
   def badSpeedData(d:Double):(Double, Double) = (0, d / 10.0)
 
   //@todo weighted average
-  def getSpeedAndTime(dist: Double, ivals: List[Interval]):(Double,Double) = {
+  def getSpeedAndTime(dist: Double, ivals: List[Interval], weights:(Long => Double) = one):(Double,Double) = {
+
     if (ivals.size == 0 || dist < 0) // No Data... not sure what to do here?
       badSpeedData(dist) // just guess 10 mph.
     else {
 
-      val spd = ivals.map(_.velocity).reduceLeft(_ + _) / ivals.size.toDouble
+      val spdSum = ivals.map(
+        ival => ival.velocity * weights(ival.recordedAt.getTime())).reduceLeft(_ + _)
+
+      val totalWeight = ivals.map(
+        ival => weights(ival.recordedAt.getTime())).reduceLeft(_+_)
+
+      val spd = spdSum / totalWeight
 
       if (spd == 0)
         badSpeedData(dist)
@@ -52,7 +61,12 @@ class Estimator {
       m._1.filter(iv => m._2.usesInterval(iv) && iv.overlaps(interval._1, interval._2)))
 
     //@todo Weighted avg by date!
-    val spdAndTimes = prunedIntervals.map(intervals => getSpeedAndTime(dist, intervals.filter(x => x.start <= interval._2 && x.end >= interval._1)))
+    val spdAndTimes = prunedIntervals.zip(models).map(intervalsAndModel => 
+      getSpeedAndTime(dist, 
+                      intervalsAndModel._1.filter(
+                        x => x.start <= interval._2 && x.end >= interval._1),
+                      intervalsAndModel._2.weightfcn))
+                     
 
     EstInterval(interval._1, 
 		interval._2, 
@@ -130,9 +144,13 @@ class Estimator {
     // Determine linear ref for the station
     var nearestPt = nearestPointOnRoute(route, station)
 
+    println("\t* Identified station ref pt as " + nearestPt)
+
     if (nearestPt.isDefined) {
       val sref = nearestPt.get.distanceTo(station)
 
+      println("\t* Identified station ref " + sref)
+      
       Some(buses.map(estimateNextBus(station, sref, _, route, models, ivals)).flatten)
     } else {
       None

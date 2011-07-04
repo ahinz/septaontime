@@ -73,6 +73,17 @@ case class Model(route: Int, summarySegmentSizeKm: Double, maxNumberOfIntervals:
     pts.zip(pts.tail)
   }
 
+  def weightfcn:(Long => Double) = {
+    // Convert to seconds
+    val startDate = dateRange._1.getTime() / 1000L
+    val endDate = dateRange._2.getOrElse(new Date()).getTime() / 1000L
+
+    val a:Double = 1.0/(endDate - startDate).toDouble
+    val k:Double = startDate.toDouble/(endDate - startDate).toDouble
+    
+    (date) => -math.pow((date / 1000L).toDouble*a - k, 2) + 1
+  }
+
   def usesInterval(ival: Interval) =
     ival.recordedAt.getTime() >= dateRange._1.getTime() &&
     (!dateRange._2.isDefined || ival.recordedAt.getTime() < dateRange._2.get.getTime()) &&
