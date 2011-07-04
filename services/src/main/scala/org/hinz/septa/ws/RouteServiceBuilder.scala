@@ -30,8 +30,14 @@ import JSONP._
  * segmentSizeKm              - Size of the summary segment (must be > 0.1) [0.1]
  * startDate                  - Start date in milliseconds for interp [24 hours ago]
  * endDate                    - End date in milliseconds for interp ['now']
- * startTime                  - Start time (hh:mm) [midnight]
- * endTime                    - End time (hh:mm) [midnight - 1s]
+ * startTime                  - Start time (decimal hours) [midnight]
+ * endTime                    - End time (decimal hours) [midnight - 1s]
+ *
+ * In addition to the above parameters, the following parameters can be used for
+ * over-time analysis:
+ * seriesTimeIncrement        - Increment for time [in decimal hours]
+ * numberOfRuns               - Number of runs (must be <= 8) [1]
+ * 
  */ 
 trait StationServiceBuilder extends ServiceBuilder {
   implicit val stationFormats = Serialization.formats(NoTypeHints)
@@ -40,23 +46,26 @@ trait StationServiceBuilder extends ServiceBuilder {
   val loader: RouteLoader
   val estimator: Estimator
 
-  def parseTime(time: String) =  {
+  def parseTime(time: Double) =  {
     val c = Calendar.getInstance()
-    val parts = time.split(":")
-    if (parts.length == 1) { // Assume this is a double
-      val hours = time.toDouble.toInt
-      val minutesFrac = time.toDouble - hours
-      val minutes = minutesFrac * 60.0
-
-      c.set(Calendar.HOUR_OF_DAY, hours)
-      c.set(Calendar.MINUTE, minutes.toInt)
-      c.getTime()      
-    } else {
-      c.set(Calendar.HOUR_OF_DAY, parts(0).toInt)
-      c.set(Calendar.MINUTE, parts(1).toInt)
-      c.getTime()
-    }
+    val hours = time.toInt
+    val minutesFrac = time.toDouble - hours
+    val minutes = minutesFrac * 60.0
+    
+    c.set(Calendar.HOUR_OF_DAY, hours)
+    c.set(Calendar.MINUTE, minutes.toInt)
+    c.getTime()      
   }
+
+  def expandModel(model: Model, timeStart: Double, timeSpan: Double, timeInc: Double, numModels: Int):List[Model] = 
+    for(j <- (0 until numModels).toList)
+      yield(Model(model.route,
+                  model.summarySegmentSizeKm,
+                  model.maxNumberOfIntervals,
+                  model.dateRange,
+                  (parseTime(timeStart + timeInc*j.toDouble),
+                   parseTime(timeStart + timeInc*j.toDouble + timeSpan)),
+                  model.distRange))
 
   val stationService = {
     pathPrefix("station" / "\\d+".r) { stationId =>
@@ -74,8 +83,8 @@ trait StationServiceBuilder extends ServiceBuilder {
       } ~
       pathPrefix("to" / "\\d+".r / "[^/]+".r) { (endStation, direction) =>
         path("") {
-          parameter('callback ?) {
-            callback => 
+          parameters('callback ?, 'seriesTimeIncrement ? "0", 'numberOfRuns ? "0") {
+            (callback, seriesTimeIncrement, numberOfRuns) => 
               parameters('segmentSizeKm ? "0.1", 
                          'startDate ? (new Date().getTime() - 1000*60*60*24).toString,
                          'endDate ? new Date().getTime().toString,
@@ -88,8 +97,8 @@ trait StationServiceBuilder extends ServiceBuilder {
                     val station1 = loader.loadStation(stationId.toInt)                    
                     val station2 = loader.loadStation(endStation.toInt)
 
-                    val possibleRoutes1 = fixedDataLoader.routesAtStation(stationId)
-                    val possibleRoutes2 = fixedDataLoader.routesAtStation(endStation)
+                    val possibleRoutes1 = loader.routesForStation(stationId.toInt)
+                    val possibleRoutes2 = loader.routesForStation(endStation.toInt)
 
                     println("* Station 1 routes:")
                     println("\t" + possibleRoutes1)
@@ -113,30 +122,47 @@ trait StationServiceBuilder extends ServiceBuilder {
                       val model = Model(tgtRoute.id, segmentSizeKm.toDouble, 10,
                                         (new Date(startDate.toLong),
                                          Some(new Date(endDate.toLong))),
-                                        (parseTime(startTime),
-                                         parseTime(endTime)),
-                                        null)                       
+                                        (parseTime(startTime.toDouble),
+                                         parseTime(endTime.toDouble)),
+                                        null)                
+
+                      val models = if (numberOfRuns.toInt > 0)
+                        expandModel(model,
+                                    startTime.toDouble,
+                                    endTime.toDouble - startTime.toDouble,
+                                    seriesTimeIncrement.toDouble,
+                                    numberOfRuns.toInt)
+                                   else
+                                     List(model)
+
+                      println("* About to estimate the following models:")
+                      println(models)
 
                       val routePoints = loader.loadRoutePoints(
                         Map("route_id" -> tgtRoute.id.toString))
 
                       val intervals = loader.loadIntervals(tgtRoute.id)
 
+                      println("* Loaded " + intervals.size + " intervals")
+
                       val est = estimator.estimateNextBus(
-                        LatLon(station1.head.lat.toDouble, 
-                               station1.head.lon.toDouble),
+                        LatLon(station2.head.lat.toDouble, 
+                               station2.head.lon.toDouble),
                         routePoints,
                         List(BusRecord(
-                          station2.head.lat,
-                          station2.head.lon,
+                          station1.head.lat,
+                          station1.head.lon,
                           "", "", "", "", "", "0")),
-                        List(model),
+                        models,
                         intervals)
-
+                      
                       println("Estimate: " + est)
-                      ctxt.complete(jsonp(callback,
-                                          write(est.map(ivalList =>
-                                            ivalList.map(busEst => busEst.arrival.head)).getOrElse(List()))))
+
+                      est match {
+                        case Some(List(BusEst(_,_,_,_,_,arrv))) =>
+                          ctxt.complete(jsonp(callback, write(arrv)))
+                        case _ => ctxt.fail(HttpStatusCodes.InternalServerError)
+                      }
                     }
                   })
               }
@@ -187,8 +213,8 @@ trait StationServiceBuilder extends ServiceBuilder {
                           val model = Model(route.id, segmentSizeKm.toDouble, 10,
                                             (new Date(startDate.toLong),
                                              Some(new Date(endDate.toLong))),
-                                            (parseTime(startTime),
-                                             parseTime(endTime)),
+                                            (parseTime(startTime.toDouble),
+                                             parseTime(endTime.toDouble)),
                                             null) 
                           
                           estimator.estimateNextBus(stationLatLon,
