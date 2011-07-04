@@ -42,6 +42,13 @@ class RouteLoader(db: String) {
     else
       East
 
+  def routesForStation(stationId: Int) =
+    runStatement(stmt =>
+      exhaustResultSet(
+        stmt.executeQuery("select * from station_route where station_id=" + stationId),
+        r => r.getString("route_shortname"))) getOrElse(List())
+                       
+
   private def buildRoute(rs: ResultSet) =
     Route(rs.getInt("id"), rs.getString("shortname"), rs.getString("longname"), rs.getString("desc"), decodeDirection(rs.getString("direction")))
 

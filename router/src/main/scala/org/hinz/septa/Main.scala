@@ -27,7 +27,7 @@ object Main {
     })
 */
     logln("done")
-
+/*
     try {
       ld.runStatement(stmt => {
         stmt.executeUpdate("drop table stations")
@@ -44,12 +44,46 @@ object Main {
           "insert into stations values (" + s.id.toInt + ", \"" + 
           s.name + "\",\"" + s.lat + "\",\"" + s.lon + "\")"))
     })
+*/
 
 /*
     Routes.route44.map(r => {
       logln("Trying to create route " + r)
       createRoute(r, ld)})                  
 */
+
+    try {
+      ld.runStatement(stmt => {
+        stmt.executeUpdate("drop table station_route")
+      })
+    } catch {
+      case e:Exception => println("--- station route table does not exist [" + e + "]")
+    }
+
+    val stationMap:Map[String,List[(String,String)]] =
+      GTFSLoader.createStationMap()
+
+    println("--- Got that station map (" + stationMap.size + " records). About to create database records")
+
+    ld.runStatement(stmt => {
+      stmt.executeUpdate("create table station_route (station_id int, route_shortname string, direction string)")
+      stmt.executeUpdate("create index station_route_index on station_route (station_id)")
+    })
+
+    println("--- Created tables")
+
+    stationMap.map(stationIdAndRouteDir => {
+      val stationId = stationIdAndRouteDir._1
+      val routeDirs = stationIdAndRouteDir._2
+
+      ld.runStatement(stmt => {
+        routeDirs.map(routeDir =>  
+          stmt.executeUpdate("insert into station_route values (" +
+                             stationId + ", \"" + routeDir._1 + "\",\"" + 
+                             routeDir._2 + "\")"))
+      })
+    })
+
 /*
     val top = new MainFrame {
       size = new java.awt.Dimension(1000,600)
