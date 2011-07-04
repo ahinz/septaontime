@@ -30,8 +30,8 @@ import JSONP._
  * segmentSizeKm              - Size of the summary segment (must be > 0.1) [0.1]
  * startDate                  - Start date in milliseconds for interp [24 hours ago]
  * endDate                    - End date in milliseconds for interp ['now']
- * startTime                  - Start time (decimal hours) [midnight]
- * endTime                    - End time (decimal hours) [midnight - 1s]
+ * startTime                  - Start time (decimal hours) [now - 2h]
+ * endTime                    - End time (decimal hours) [now]
  *
  * In addition to the above parameters, the following parameters can be used for
  * over-time analysis:
@@ -55,6 +55,13 @@ trait StationServiceBuilder extends ServiceBuilder {
     c.set(Calendar.HOUR_OF_DAY, hours)
     c.set(Calendar.MINUTE, minutes.toInt)
     c.getTime()      
+  }
+
+  def curTime() = {
+    val c = Calendar.getInstance()
+    c.setTime(new Date())
+
+    c.get(Calendar.HOUR_OF_DAY).toDouble + c.get(Calendar.MINUTE).toDouble/60.0
   }
 
   def expandModel(model: Model, timeStart: Double, timeSpan: Double, timeInc: Double, numModels: Int):List[Model] = 
@@ -88,8 +95,8 @@ trait StationServiceBuilder extends ServiceBuilder {
               parameters('segmentSizeKm ? "0.1", 
                          'startDate ? (new Date().getTime() - 1000*60*60*24).toString,
                          'endDate ? new Date().getTime().toString,
-                         'startTime ? "00:00",
-                         'endTime ? "23:59") {
+                         'startTime ? (curTime() - 2.0).toString,
+                         'endTime ? curTime().toString) {
                 (segmentSizeKm, startDate, endDate, startTime, endTime) =>
                   get(ctxt => {
                     val d = DirectionFactory.directionForString(direction).get
@@ -159,7 +166,7 @@ trait StationServiceBuilder extends ServiceBuilder {
                       println("Estimate: " + est)
 
                       est match {
-                        case Some(List(BusEst(_,_,_,_,_,arrv))) =>
+                        case Some(List(BusEst(_,_,_,_,_,_,arrv))) =>
                           ctxt.complete(jsonp(callback, write(arrv)))
                         case _ => ctxt.fail(HttpStatusCodes.InternalServerError)
                       }
@@ -176,8 +183,8 @@ trait StationServiceBuilder extends ServiceBuilder {
               parameters('segmentSizeKm ? "0.1", 
                          'startDate ? (new Date().getTime() - 1000*60*60*24).toString,
                          'endDate ? new Date().getTime().toString,
-                         'startTime ?,
-                         'endTime ?) {
+                         'startTime ? (curTime() - 2.0).toString,
+                         'endTime ? curTime().toString) {
                 (segmentSizeKm, startDate, endDate, startTime, endTime) =>
                   get(ctxt => {
                     val stations = loader.loadStation(stationId.toInt)                    
@@ -186,6 +193,7 @@ trait StationServiceBuilder extends ServiceBuilder {
                       println("Invalid Station")
                       ctxt.fail(HttpStatusCodes.NotFound)
                     } else {
+
                       // Extract the direction [ex: eastbound, east, e]
                       val dOpt = DirectionFactory.directionForString(direction)
                       val station = stations.head
@@ -209,7 +217,10 @@ trait StationServiceBuilder extends ServiceBuilder {
                           val routePoints = loader.loadRoutePoints(
                             Map("route_id" -> route.id.toString))
 
-                          val intervals = loader.loadIntervals(route.id)
+                          val intervals = loader.loadIntervals(route.id) 
+
+                          println("\t* Loaded " + routePoints.size + " route points")
+                          println("\t* Loaded " + intervals.size + " intervals")
                           val model = Model(route.id, segmentSizeKm.toDouble, 10,
                                             (new Date(startDate.toLong),
                                              Some(new Date(endDate.toLong))),
@@ -224,10 +235,10 @@ trait StationServiceBuilder extends ServiceBuilder {
                                                     intervals)
                         })
                           
-                        println("* Results: " + busEsts)
+                        println("* Results: " + busEsts.flatten.flatten)
 
                         ctxt.complete(
-                          jsonp(callback, write("hmmmm")))
+                          jsonp(callback, write(busEsts.flatten.flatten)))
                         
                       } else {
                         println("invalid direction")

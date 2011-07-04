@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <titLe>SEPTA OnTime Routes</title>
+  <script type="text/javascript" src="jquery.js"></script>
+  <script>
+    var baseURL = "http://localhost:8080/"
+
+    $(function() {
+	// Load route data
+	$.ajax({
+	    url: baseURL + "routes/",
+	    dataType: 'jsonp',
+	    success: function( routes ) {
+		var routeSelect = $("#route")
+		routeSelect.attr("disabled",false);
+		routes.map(function( route ) {
+		    routeSelect.append("<option>" + route + "</option>");
+		});
+	    }
+	});
+
+	var selectedRoute = null;
+	var selectedDirection = null;
+	var stationId = null;
+	var stationLatLons = {};
+
+	$("#route").change(function() {
+	    selectedRoute = $(this).val();
+	    var dirSel = $("#dir");
+	    $.ajax({
+		url: baseURL + "routes/" + selectedRoute,
+		dataType: 'jsonp',
+		success: function( directions ) {
+		    directions.map(function( direction ) {
+			dirSel
+			    .attr("disabled", false)
+			    .append($("<option value=\"" + direction.directionID + "\">" + direction.name + "</option>"))
+		    });
+		}
+	    });
+	});
+
+	$("#dir").change(function() {
+	    selectedDirection = $(this).val();
+	    var stationSel = $("#station_from");
+	    var stationToSel = $("#station_to");
+	    $.ajax({
+		url: baseURL + "routes/" + selectedRoute + "/" + selectedDirection,
+		dataType: 'jsonp',
+		success: function( stations ) {
+		    stations.map(function( station ) {
+			stationLatLons[station.id] = [station.lat,station.lon];
+			stationSel
+			    .attr("disabled", false)
+			    .append($("<option></option>")
+				    .attr("value", station.id)
+				    .text(station.name));
+			stationToSel
+			    .attr("disabled", false)
+			    .append($("<option></option>")
+				    .attr("value", station.id)
+				    .text(station.name));
+		    });
+		}
+	    });
+	});
+
+	// Example bus output data:
+	// {"blockId":"9677","busId":"8164",
+	// "bus":{"lat":40.008308,"lon":-75.251572},
+	// "station":{"lat":40.004973,"lon":-75.217954},
+	// "origOffset":1.0,
+	// "offset":4.433193086102814,
+	// "arrival":[8.622357188158317] }
+	$("#station_from").change(function() {
+	    stationId = $(this).val();
+	    
+	    $.ajax({
+		url: baseURL + "station/" + stationId + "/bus/" + selectedRoute + "/" + selectedDirection,
+		dataType: 'jsonp',
+		success: function( estimates ) {
+		    $("#data").append("Est: " + estimates[0].arrival[0]);
+		}
+	    });
+	});
+	
+	$("#station_to").change(function() {
+	    var toStationId = $(this).val();
+
+	    $.ajax({
+		url: baseURL + "station/" + stationId + "/to/" + toStationId + "/" + selectedDirection,
+		dataType: 'jsonp',
+		success: function( estimates ) {
+		    $("#data").append("<br>Station to Station time: " + estimates[0])
+		}
+	    });
+	});
+ });
+  </Script>
+</head>
+<body>
+
+<div id="selects">
+  <select id="route" disabled>
+    <option id="-1">Routes</option>
+  </select>
+  <select id="dir" disabled>
+    <option id="-1">Directions</option>
+  </select>
+  <select id="station_from" disabled>
+    <option id="-1">Station</option>
+  </select>		 
+  going to
+  <select id="station_to" disabled>
+    <option id="-1">Arrival Station</option>
+  </select>
+</div>
+<div id="data"></div>
+
+</body>

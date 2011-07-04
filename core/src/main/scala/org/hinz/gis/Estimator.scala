@@ -11,8 +11,8 @@ case class LatLon(lat:Double,lon:Double) {
 }
 
 
-case class BusEst(blockId: String, busId: String, station: LatLon, origOffset: Double, offset: Double, arrival: List[Double]) {
-  def arrival(v: List[Double]):BusEst = BusEst(blockId, busId, station, origOffset, offset, v)
+case class BusEst(blockId: String, busId: String, bus: LatLon, station: LatLon, origOffset: Double, offset: Double, arrival: List[Double]) {
+  def arrival(v: List[Double]):BusEst = BusEst(blockId, busId, bus, station, origOffset, offset, v)
 }
 
 case class EstInterval(startDist: Double, endDist: Double, v: List[Double], t: List[Double])
@@ -103,6 +103,7 @@ class Estimator {
     case Some(aDist) if aDist >= 0 && aDist <= sref => Some(BusEst(
       r.BlockID,
       r.VehicleID,
+      LatLon(r.lat.toDouble, r.lng.toDouble),
       station,
       r.Offset.toDouble,
       aDist,
