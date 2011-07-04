@@ -16,7 +16,7 @@ object Main {
     val db = "devdb.db"
     val ld = new RouteLoader(db)
     
-    log("Starting to clean the database...")
+    logln("Starting to clean the database...")
 
 /*
     ld.runStatement(stmt => {
@@ -27,7 +27,7 @@ object Main {
     })
 */
     logln("done")
-/*
+
     try {
       ld.runStatement(stmt => {
         stmt.executeUpdate("drop table stations")
@@ -44,7 +44,6 @@ object Main {
           "insert into stations values (" + s.id.toInt + ", \"" + 
           s.name + "\",\"" + s.lat + "\",\"" + s.lon + "\")"))
     })
-*/
 
 /*
     Routes.route44.map(r => {
