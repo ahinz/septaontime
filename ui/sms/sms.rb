@@ -2,11 +2,10 @@ require 'net/http'
 require 'json'
 require 'date'
 
-$URL = "http://adamhinz.com:8080"
-$NEXT_PREFIX = "/next"
-
 def test
-  next_bus(40.006129, -75.215433, "Eastbound", "44")
+  nxt = next_bus(6234, 44, "Eastbound")
+  drive_time = drive_time(6234,10259,"Eastbound")
+  drive_time
 end
 
 def test_time
@@ -14,21 +13,29 @@ def test_time
   JSON.parse(Net::HTTP.get(u))
 end
 
-def next_bus(lat,lon,dir,route,url=$URL,sfx=$NEXT_PREFIX)
-  u = URI.parse(url + sfx + "?lat=#{lat}&lon=#{lon}&direction=#{dir}&route=#{route}")
-  log u
+def drive_time(station1, station2, dir)
+  u = URI.parse("http://appdev.adamhinz.com:8080/station/#{station1}/to/#{station2}/#{dir}")
   r = Net::HTTP.get(u)
   j = JSON.parse(r)
-  log r
   j
 end
+
+
+def next_bus(station, bus, dir)
+  u = URI.parse("http://appdev.adamhinz.com:8080/station/#{station}/bus/#{bus}/#{dir}")
+  r = Net::HTTP.get(u)
+  j = JSON.parse(r)
+  j
+end
+
+# use log(x) to log something to tropo
 
 def fmtbus(bus_hash)
   bus_hash["busId"] + " @ " + (DateTime.parse(bus_hash["arrival"]) - 4.0/24.0).strftime("%l:%M %P")
 end
 
 ask  "", :choices => "[ANY]"
-result = say(test().map { |m| fmtbus(m) }.join(", ") + fmtbus(test_time.merge({"busId" => "Est Arrival"})))
+result = say(test().map { |arv| " offset " + arv.to_s }.join(", "))
 
  
 #say "You chose " + result.value
