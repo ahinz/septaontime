@@ -1,0 +1,144 @@
+#est {
+    width: 100%;
+    border-spacing: 0px;
+}
+
+td {
+    text-align: center;
+    border-style: solid;
+    border-width: 0px 0px 1px 0px;
+    border-color: gray;
+}
+
+tr:last-child > td {
+    border-width: 0px;
+}
+
+th {
+    border-style: solid;
+    border-width: 0px 0px 2px 0px;
+}
+
+.content {
+    background-color: #E4F6F8;
+    border-color: #638291;
+    border-style: solid;
+    border-width: 2px;
+    overflow: hidden;
+}
+
+#selects {
+    height: 100%;
+    width: 200px;
+    height: 600px;
+}
+
+#title {
+    background-color: #E8EFF3;
+    color: #638291;
+}
+
+#map {
+    width: 96%;
+    height: 360px;
+    margin: 2%;
+}
+
+.borderbottom {
+    border-color: #638291;
+    border-style: solid;
+    border-width: 0px 0px 2px 0px;
+    margin-bottom: 5px;
+}
+
+h3 {
+    margin: 0;
+    padding: 5px 0px 0px 0px;
+    text-align: center;
+}
+
+select {
+    width: 96%;
+    margin: 2%;
+}
+
+.who {
+    position:absolute;
+    bottom:0;
+    text-align:center;
+    width:100%;
+    background-color: green;
+    color: white;
+}
+
+p {
+    margin: 5px;
+    text-align: center;
+}
+
+#content {
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    width: 650px;
+    margin-left: -350px;
+}
+
+#map_container {
+    padding: 10px;
+    float:right;
+    width:400px;
+    height: 580px;
+}
+
+.rounded {
+    -webkit-border-radius: 10px;
+    -webkit-border-radius: 10px;
+    -moz-border-radius: 10px;
+    -moz-border-radius: 10px;
+    border-radius: 10px;
+    border-radius: 10px;
+}
+
+.roundedbottom {
+    -webkit-border-bottom-left-radius: 8px;
+    -webkit-border-bottom-right-radius: 8px;
+    -moz-border-radius-bottomleft: 10px;
+    -moz-border-radius-bottomright: 10px;
+    border-bottom-left-radius: 8px;
+    border-bottom-right-radius: 8px;
+}
+
+.roundedtop {
+    -webkit-border-top-left-radius: 10px;
+    -webkit-border-top-right-radius: 10px;
+    -moz-border-radius-topleft: 10px;
+    -moz-border-radius-topright: 10px;
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
+}
+
+/*
+#title {
+    background-color: green;
+    width: 720px;
+    margin-left: -10px;
+    margin-top: -10px;
+    height: 50px;
+}
+
+
+
+#selects {
+    background-color: red;
+    margin: 0 auto;
+}
+
+h1 {
+    text-align: center;
+    height: 40px;
+}
+
+#selects {
+
+}*/

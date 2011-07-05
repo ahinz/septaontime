@@ -3,10 +3,72 @@
 <head>
   <titLe>SEPTA OnTime Routes</title>
   <script type="text/javascript" src="jquery.js"></script>
+  <script type="text/javascript"
+	  src="http://maps.google.com/maps/api/js?sensor=false">
+  </script>
+  <link href="main.css" rel="stylesheet" type="text/css"></link>
+
   <script>
     var baseURL = "http://localhost:8080/"
 
+/**
+ * Perform an async AJAX call to determine the bus route between two
+ * lat/lon pts.
+ *
+ * @param lat1,lon1     First point
+ * @param lat2,lon2     Second point
+ * @param route         Route to draw
+ * @param map           Map to draw on
+ * @param bounds        Current map bounds
+ * @param busLines      List of current lines representing the route on the map
+ *
+ * @mutates bound       Upon ajax async return bounds will include this line
+ * @mutates busLines    Upon ajax async return this array will contain a ref to the bus
+ */
+function drawLine(lat1,lon1,lat2,lon2,route,map,bounds,busLines,color) {
+    $.ajax({
+	url: baseURL + "map/" + route + "/" + lat1 + "," + lon1 + "/to/" + lat2 + "," + lon2 + "/",
+	dataType: 'jsonp',
+	success: function( points ) {
+	    busLines.push(
+		new google.maps.Polyline({
+		    path: points.map(function( point ) {
+			var ll = new google.maps.LatLng(point.lat, point.lon);
+			if (bounds == null) {
+			    bounds = new google.maps.LatLngBounds(ll,ll);
+			} else {
+			    bounds = bounds.extend(ll);
+			}
+			
+			return ll;
+		    }),
+		    map: map,
+		    strokeColor: color || "#FF0000",
+		    strokeOpacity: 1.0,
+		    strokeWeight: 2
+		}));
+
+		map.fitBounds(bounds);
+	    }
+	});
+}
+
     $(function() {
+	var latlng = new google.maps.LatLng(39.9522222, -75.1641667);
+	var myOptions = {
+	    zoom: 12,
+	    center: latlng,
+	    mapTypeId: google.maps.MapTypeId.ROADMAP
+	};
+	var map = new google.maps.Map(document.getElementById("map"),
+				  myOptions);	
+
+	var bounds = null;
+	var busLines = [];
+
+//	drawLine(40.012901,-75.27301,40.006129,-75.215433, 44, map, bounds, busLines, "#F00");
+//	drawLine(40.006129,-75.215433,39.951563,-75.15732, 44, map, bounds, busLines, "#00F");
+
 	// Load route data
 	$.ajax({
 	    url: baseURL + "routes/",
@@ -50,14 +112,13 @@
 		dataType: 'jsonp',
 		success: function( stations ) {
 		    stations.map(function( station ) {
-			stationLatLons[station.id] = [station.lat,station.lon];
+			stationLatLons[station.id] = new google.maps.LatLng(station.lat,station.lon);
 			stationSel
 			    .attr("disabled", false)
 			    .append($("<option></option>")
 				    .attr("value", station.id)
 				    .text(station.name));
 			stationToSel
-			    .attr("disabled", false)
 			    .append($("<option></option>")
 				    .attr("value", station.id)
 				    .text(station.name));
@@ -74,19 +135,51 @@
 	// "offset":4.433193086102814,
 	// "arrival":[8.622357188158317] }
 	$("#station_from").change(function() {
+	    $("#station_to").attr("disabled", false)
+
 	    stationId = $(this).val();
 	    
+	    stationLatLon = stationLatLons[stationId];
+	    new google.maps.Marker({
+		position: stationLatLon,
+		map: map
+	    });
+
+	    bounds = new google.maps.LatLngBounds(stationLatLon,stationLatLon);
+
 	    $.ajax({
 		url: baseURL + "station/" + stationId + "/bus/" + selectedRoute + "/" + selectedDirection,
 		dataType: 'jsonp',
 		success: function( estimates ) {
-		    $("#data").append("Est: " + estimates[0].arrival[0]);
+		    estimates.map(function( estimate ) {
+			new google.maps.Marker({
+			    position: new google.maps.LatLng(estimate.bus.lat, estimate.bus.lon),
+			    map: map,
+			    icon: "http://www3.septa.org/transitview/images/bus_blue.png"
+			});
+
+			drawLine(stationLatLon.lat(), stationLatLon.lng(),
+				 estimate.bus.lat, estimate.bus.lon,
+				 selectedRoute, map, bounds, busLines, "#F00");
+			$("#data").append("Est: " + estimate.arrival[0] + "<br>");
+		    });
 		}
 	    });
 	});
 	
 	$("#station_to").change(function() {
 	    var toStationId = $(this).val();
+
+	    var toStationLatLon = stationLatLons[toStationId];
+
+	    new google.maps.Marker({
+		position: toStationLatLon,
+		map: map
+	    });
+
+	    drawLine(stationLatLon.lat(), stationLatLon.lng(),
+		     toStationLatLon.lat(), toStationLatLon.lng(),
+		     selectedRoute, map, bounds, busLines, "#00F");
 
 	    $.ajax({
 		url: baseURL + "station/" + stationId + "/to/" + toStationId + "/" + selectedDirection,
@@ -100,22 +193,51 @@
   </Script>
 </head>
 <body>
-
-<div id="selects">
-  <select id="route" disabled>
-    <option id="-1">Routes</option>
-  </select>
-  <select id="dir" disabled>
-    <option id="-1">Directions</option>
-  </select>
-  <select id="station_from" disabled>
-    <option id="-1">Station</option>
-  </select>		 
-  going to
-  <select id="station_to" disabled>
-    <option id="-1">Arrival Station</option>
-  </select>
+<div id="content">
+  <div id="selects" style="float:left;position: relative;" class="rounded content">
+    <div id="title" class="roundedtop borderbottom"><h3>SEPTA Next Bus<h3></div>
+    <div class="borderbottom">
+      <p>This tool uses the new SEPTA real time bus API to determine when the next bus will arrive at a stop</p><p>To start using the tool just pick your route, direction, and starting station</p><p>Select your destination station to determine route times.</p>
+    </div>
+    <div>
+      <p>Select Route & Direction</p>
+      <select id="route" disabled>
+	<option id="-1">Routes</option>
+      </select>
+    </div>
+    <div>
+      <select id="dir" disabled>
+	<option id="-1">Directions</option>
+      </select>
+    </div>
+    <div>
+      <p>Pick starting and ending stations</p>
+      <select id="station_from" disabled>
+	<option id="-1">Starting Station</option>
+      </select>		 
+    </div>
+    <div>
+      <select id="station_to" disabled>
+	<option id="-1">Arrival Station</option>
+      </select>
+    </div>
+    <div id="data"></div>
+    <div class="who roundedbottom">Designed by Adam Hinz</div>
+  </div>
+  <div id="map_container" class="rounded content">
+    <div id="map"></div>
+    <table id="est">
+      <thead>
+      <tr>
+	<th>Bus #</th><th>Block #</th><th>Departing Station</th><th>Arrive Dst</th>
+      </tr>
+      </thead>
+      <tr><td>1425</td><td>2525</td><td>3:45pm</td><td>4:15pm</td></tr>
+      <tr><td>1425</td><td>2525</td><td>3:45pm</td><td>4:15pm</td></tr>
+      <tr><td>1425</td><td>2525</td><td>3:45pm</td><td>4:15pm</td></tr>
+      <tr><td>1425</td><td>2525</td><td>3:45pm</td><td>4:15pm</td></tr>
+    </table>
+  </div>
+  <div style="clear: both;"></div>
 </div>
-<div id="data"></div>
-
 </body>

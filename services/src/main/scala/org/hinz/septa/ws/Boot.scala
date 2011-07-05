@@ -16,7 +16,7 @@ class Boot {
     // bake your module cake here
   }
 
-  val routeModule = new RouteServiceBuilder with StationServiceBuilder {
+  val routeModule = new RouteServiceBuilder with StationServiceBuilder with MappingServiceBuilder {
     val fixedDataLoader = new FixedDataLoader()
     val loader = new RouteLoader("devdb.db")
     val estimator = new Estimator()
@@ -38,5 +38,6 @@ class Boot {
   actor[RootService] ! Attach(HttpService(mainModule.routeService))
   actor[RootService] ! Attach(HttpService(routeModule.routeService))
   actor[RootService] ! Attach(HttpService(routeModule.stationService))
+  actor[RootService] ! Attach(HttpService(routeModule.mapService))
 
 }
