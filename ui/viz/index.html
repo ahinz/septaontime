@@ -10,7 +10,7 @@
   <link href="main.css" rel="stylesheet" type="text/css"></link>
 
   <script>
-    var baseURL = "http://localhost:8080/"
+    var baseURL = "http://appdev.adamhinz.com:8080/"
 
 /**
  * Create a new grapah by execute an async ajax request to
@@ -35,7 +35,7 @@ function createGraph(params) {
     var n = (params.end - params.start)/params.incr;
 
     $.ajax({
-	url: "http://localhost:8080/station/" + params.startStation + 
+	url: baseURL + "station/" + params.startStation + 
 	    "/to/" + params.endStation + "/" + params.direction + "?endDate=" + enddate +
 	    "&startDate=" + startdate + "&startTime=" + params.start + "&endTime=" + 
 	    (params.start+params.offset) + "&" + "seriesTimeIncrement=" + params.incr + 
@@ -69,7 +69,6 @@ function createGraph(params) {
  * @param container a string id of the container to render to
  */
 function renderChart( data, title, container ) {
-    alert(data);
     chart1 = new Highcharts.Chart({
 	chart: {
 	    renderTo: container,
@@ -167,6 +166,7 @@ function drawLine(lat1,lon1,lat2,lon2,route,map,bounds,busLines,color) {
 function renderTable(table, busses, timeToDest) {
     $("#" + table + " tr").map(function( index, dom ) {
 	if (index > 0) {
+	    alert(index);
 	    $(dom).remove();
 	}
     });
@@ -175,6 +175,10 @@ function renderTable(table, busses, timeToDest) {
     busses.map(function( bus ) {
 	table.append(createResultRow(bus, timeToDest));
     });
+
+    if ((busses == null || busses.length == 0) && typeof timeToDest !== "undefined") {
+	table.append("<tr><td colspan=\"4\">Estimate time to arrival: " + timeToDest + "</td></tr>");
+    }
 }
 
 function createResultRow(busest, timeToDest) {

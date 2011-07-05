@@ -3,6 +3,9 @@
 .ensime
 *.db
 *~
+bin
+logs
+gtfs_data
 route.url
 .DS_Store
 target/
