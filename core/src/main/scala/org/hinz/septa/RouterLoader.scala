@@ -19,6 +19,8 @@ class RouteLoader(db: String) {
     var t:Option[T] = None
     try {
       t = Some(s(c.createStatement))
+    } catch {
+      case e:Exception => { println(e); throw e; }
     } finally {
       c.close()
     }
