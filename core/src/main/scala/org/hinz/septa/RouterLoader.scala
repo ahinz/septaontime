@@ -60,9 +60,8 @@ class RouteLoader(db: String) {
   def buildStation(rs: ResultSet) =
     Station(rs.getString("id"), rs.getString("name"), rs.getString("lat"), rs.getString("lon"))
 
-  def buildInterval(rs: ResultSet) = 
-    Interval(rs.getInt("id"), rs.getInt("route_id"), rs.getInt("route_data_id1"),rs.getInt("route_data_id2"),rs.getDouble("start_ref"),rs.getDouble("end_ref"),new Date(rs.getLong("recordedAt")*1000),rs.getDouble("time"))
-  
+  def buildInterval(rs: ResultSet) =
+    Interval(rs.getInt("id"), rs.getInt("route_id"), rs.getInt("route_data_id1"),rs.getInt("route_data_id2"),rs.getDouble("start_ref"),rs.getDouble("end_ref"),format.parse(rs.getString("recordedAt")),rs.getDouble("time"))
 
   def buildBusData(rs: ResultSet) =
     BusData(rs.getInt("id"), rs.getString("route"), rs.getDouble("lat"),
@@ -124,7 +123,7 @@ class RouteLoader(db: String) {
   }
 
   def createInterval(t: Interval) = {
-    val stmtstr = "insert into interval_data (route_id,route_data_id1,route_data_id2,start_ref,end_ref,recordedAt,time) values (" + List(t.route_id, t.bus_data_id1, t.bus_data_id2,t.start,t.end,t.recordedAt.getTime(),t.time).map("'" + _ + "'").mkString(",") + ")"
+    val stmtstr = "insert into interval_data (route_id,route_data_id1,route_data_id2,start_ref,end_ref,recordedAt,time) values (" + List(t.route_id, t.bus_data_id1, t.bus_data_id2,t.start,t.end,t.recordedAt,t.time).map("'" + _ + "'").mkString(",") + ")"
 
     println("STMT: " + stmtstr)
     runStatement(stmt =>

@@ -11,19 +11,19 @@ object GTFSLoader {
   rsrc.readLine() // Dump header row... we know what's up
   
   private def trips:BufferedReader = {
-    val rdr = new BufferedReader(new InputStreamReader(new FileInputStream("/home/ahinz/src/septaontime/gtfs_data/trips.txt")))
+    val rdr = new BufferedReader(new InputStreamReader(new FileInputStream("/Users/ahinz/Downloads//Archive 00/septa_gtfs/google_bus/trips.txt")))
     rdr.readLine
     rdr
   }
 
   private def stopTimes:BufferedReader = {
-    val rdr = new BufferedReader(new InputStreamReader(new FileInputStream("/home/ahinz/src/septaontime/gtfs_data/stop_times.txt")))
+    val rdr = new BufferedReader(new InputStreamReader(new FileInputStream("/Users/ahinz/Downloads//Archive 00/septa_gtfs/google_bus/stop_times.txt")))
     rdr.readLine
     rdr
   }
 
   private def routes:BufferedReader = {
-    val rdr = new BufferedReader(new InputStreamReader(new FileInputStream("/home/ahinz/src/septaontime/gtfs_data/routes.txt")))
+    val rdr = new BufferedReader(new InputStreamReader(new FileInputStream("/Users/ahinz/Downloads//Archive 00/septa_gtfs/google_bus/routes.txt")))
     rdr.readLine
     rdr
   }
