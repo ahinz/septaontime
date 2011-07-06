@@ -6,192 +6,15 @@
   <script type="text/javascript"
 	  src="http://maps.google.com/maps/api/js?sensor=false">
   </script>
+  <script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.8.14/jquery-ui.min.js" type="text/javascript"></script>
   <script src="js/highcharts.js" type="text/javascript"></script>
+  <script src="main.js" type="text/javascript"></script>
   <link href="main.css" rel="stylesheet" type="text/css"></link>
+  <link href="http://ajax.googleapis.com/ajax/libs/jqueryui/1.7.0/themes/base/jquery-ui.css" rel="stylesheet" type="text/css"></link>
 
   <script>
     var baseURL = "http://appdev.adamhinz.com:8080/"
 
-/**
- * Create a new grapah by execute an async ajax request to
- * load historic data from the web services
- *
- * Parameter elements:
- * @param element string element to render to
- * @param start,end  start and end times to render (decimal hours)
- * @param offset how much data to look backwards at (decimal hours)
- * @param incr the amount to increment each model (decimal hours)
- * @param date Date object specifying the date to run the model with
- * @param startStation the id of the starting station
- * @param startStationName the name of the starting station
- * @param endStation the id of the ending station
- * @param endStationName the name of the ending station
- * @param direction the direction
- */
-function createGraph(params) {
-
-    var startdate = params.date.getTime();
-    var enddate = startdate + 1000*60*60*25;
-    var n = (params.end - params.start)/params.incr;
-
-    $.ajax({
-	url: baseURL + "station/" + params.startStation + 
-	    "/to/" + params.endStation + "/" + params.direction + "?endDate=" + enddate +
-	    "&startDate=" + startdate + "&startTime=" + params.start + "&endTime=" + 
-	    (params.start+params.offset) + "&" + "seriesTimeIncrement=" + params.incr + 
-	    "&numberOfRuns=" + n,
-	dataType: 'jsonp',
-	timeout: 1000*60,
-	success: function( content ) {
-	    var data = [];
-	    var count = 0;
-	    for(var i=params.start;i<params.end;i+=params.incr) {
-		// Cheat right now
-//		if (content[count] > 15) {
-		    data.push([i + params.offset, content[count]]);
-//		}
-		count += 1;
-	    }
-	    
-	    renderChart(data, 
-			"Time to " + params.startStationName + 
-			" to " + params.endStationName,
-			params.element);
-	}
-    });
-}
-
-/**
- * Render the data into a chart in the given container
- *
- * @param array of pairs to render
- * @param title the title of the chart
- * @param container a string id of the container to render to
- */
-function renderChart( data, title, container ) {
-    chart1 = new Highcharts.Chart({
-	chart: {
-	    renderTo: container,
-	    defaultSeriesType: 'spline'
-	},
-	title: {
-	    text: title
-	},
-	xAxis: {
-	    //categories: $.map(data, function ( datum ) { return datum[0]; }),
-	    plotBands: [{ 
-		from: 7.5,
-		to: 9.5,
-		color: 'rgba(68, 170, 213, 0.1)',
-		label: {
-		    text: 'Morning Rush',
-		    style: {
-			color: '#606060'
-		    }
-		}
-            },{
-		from: 16.0,
-		to: 19.0,
-		color: 'rgba(68, 170, 213, 0.1)',
-		label: {
-		    text: 'Afternoon Rush',
-		    style: {
-			color: '#606060'
-		    }
-		}
-	    }]
-	},
-	tooltip: {
-	    formatter: function() {
-		return '<b>'+ this.series.name +'</b><br/>'+
-		    this.x  +': '+ this.y;
-	    }
-	},
-	series: [{
-	    name: 'Route Time',
-	    data: data 
-	}]
-    });
-}
-
-/**
- * Perform an async AJAX call to determine the bus route between two
- * lat/lon pts.
- *
- * @param lat1,lon1     First point
- * @param lat2,lon2     Second point
- * @param route         Route to draw
- * @param map           Map to draw on
- * @param bounds        Current map bounds
- * @param busLines      List of current lines representing the route on the map
- *
- * @mutates bound       Upon ajax async return bounds will include this line
- * @mutates busLines    Upon ajax async return this array will contain a ref to the bus
- */
-function drawLine(lat1,lon1,lat2,lon2,route,map,bounds,busLines,color) {
-    $.ajax({
-	url: baseURL + "map/" + route + "/" + lat1 + "," + lon1 + "/to/" + lat2 + "," + lon2 + "/",
-	dataType: 'jsonp',
-	success: function( points ) {
-	    busLines.push(
-		new google.maps.Polyline({
-		    path: points.map(function( point ) {
-			var ll = new google.maps.LatLng(point.lat, point.lon);
-			if (bounds == null) {
-			    bounds = new google.maps.LatLngBounds(ll,ll);
-			} else {
-			    bounds = bounds.extend(ll);
-			}
-			
-			return ll;
-		    }),
-		    map: map,
-		    strokeColor: color || "#FF0000",
-		    strokeOpacity: 1.0,
-		    strokeWeight: 2
-		}));
-
-		map.fitBounds(bounds);
-	    }
-	});
-}
-
-/**
- * Completely render the results table
- *
- * @param table String id of the table to render to
- * @param busses array of bus est objects
- * @param timeToDest (Optional) time offset to destination
- */
-function renderTable(table, busses, timeToDest) {
-    $("#" + table + " tr").map(function( index, dom ) {
-	if (index > 0) {
-	    alert(index);
-	    $(dom).remove();
-	}
-    });
-
-    var table = $("#" + table);
-    busses.map(function( bus ) {
-	table.append(createResultRow(bus, timeToDest));
-    });
-
-    if ((busses == null || busses.length == 0) && typeof timeToDest !== "undefined") {
-	table.append("<tr><td colspan=\"4\">Estimate time to arrival: " + timeToDest + "</td></tr>");
-    }
-}
-
-function createResultRow(busest, timeToDest) {
-    var timeStr = ""
-    if(typeof timeToDest !== "undefined") {
-	timeStr = timeToDest;
-    }
-
-    return "<tr class=\"result\"><td>" + busest.busId + "</td>" +
-	"<td>" + busest.blockId + "</td>" +
-	"<td>" + busest.arrival[0] + "</td>" + 
-	"<td>" + timeStr + "</td></tr>";
-}
 
     $(function() {
 	var latlng = new google.maps.LatLng(39.9522222, -75.1641667);
@@ -312,6 +135,45 @@ function createResultRow(busest, timeToDest) {
 		}
 	    });
 	});
+
+	$("#sch_submit").click(function() {
+	    $(this).attr("disabled","disabled");
+
+	    var date = $.datepicker.parseDate("mm/dd/yy",
+					      $("#sch_date").val());
+
+	    $.ajax({
+		url: baseURL + "station/" + stationId + "/schedule/" + selectedRoute + "/" + selectedDirection + "?date=" + date.getTime(),
+		dataType: 'jsonp',
+		success: function( arrivals ) {
+		    var table = $("#sch_table");
+
+		    $("#sch_table tr").map(function( index, dom ) {
+			if (index > 0) {
+			    $(dom).remove();
+			}
+		    });
+
+		    var prev = null;
+		    arrivals.sort().map(function( arrival ) {
+			var dHours = dateToDecimalHours(new Date(arrival));
+			var newRow = "<tr><td>" + decimalHoursToTime(dHours) + "</td>";
+
+			if (prev == null) {
+			    newRow += "<td></td>";
+			} else {
+			    newRow += "<td>" + (parseInt(dHours*60) - parseInt(prev*60)) + "</td>";
+			}
+
+			prev = dHours;
+
+			table.append(newRow + "</tr>");
+		    });
+		    
+		    $("#sch_submit").removeAttr("disabled");
+		}
+	    });
+	});
 	
 	$("#station_to").change(function() {
 
@@ -339,12 +201,45 @@ function createResultRow(busest, timeToDest) {
 
 	$("#historic").click(function( button ) {
 	    $("#historic_content").css("display","block");
-	    var start = 4.0;
+	});
+
+	$("#createschd").click(function( button ) {
+	    $("#sch_content").css("display","block");
+	});
+
+	$(".close").click(function( button ) {
+	    $(".overlay_content").css("display","none");
+	});
+
+	$("#sch_date").datepicker();
+	$("#historic_date").datepicker();
+
+	fillTimeSelect("historic_start", 7.0, 20.0, 0.5);
+	fillTimeSelect("historic_end", 7.0, 20.0, 0.5);
+
+	$("#historic_start").val(7.0);
+	$("#historic_end").val(20.0);
+
+    
+
+	$("#historic_submit").click(function( element ) {
+	    $(this).attr("disabled","disabled");
+	    $("#historic_start").attr("disabled","disabled");
+	    $("#historic_end").attr("disabled","disabled");
+	    $("#historic_date").attr("disabled","disabled");
+
+	    var histDate = $("#historic_date");
+	    var start = $("#historic_start").val();
 	    var offset = 2.0;
 	    var incr = .25;
-	    var end = 20.0;
+	    var end = $("#historic_end").val();
+	    var instance = histDate.data( "datepicker" );
+	    var date = $.datepicker.parseDate("mm/dd/yy",
+					       histDate.val());
 
-	    var name = "Ignore";
+	    $("#historic_holder").css("display","inline");
+
+	    var name = "blah";
 
 	    createGraph({
 		element: 'history_graph',
@@ -352,26 +247,44 @@ function createResultRow(busest, timeToDest) {
 		end: end,
 		offset: offset,
 		incr: incr,
-		date: new Date(2011,5,22),
+		date: date,
 		startStation: stationId,
 		startStationName: name,
 		endStation: toStationId,
 		endStationName: name,
-		direction: selectedDirection
+		direction: selectedDirection,
+		callback: function() {
+		    $("#historic_holder").remove();
+		}
 	    });
-
-	});
-
-	$(".close").click(function( button ) {
-	    $(".overlay_content").css("display","none");
 	});
  });
-  </Script>
+
+
+  </script>
 </head>
 <body>
+<div id="sch_content" class="overlay_content">
+    <a href="#" class="close">Close</a> 
+  Date: <input type="text" id="sch_date" value="6/27/2011"><input type="submit" id="sch_submit">
+    <table id="sch_table">
+      <tr>
+	<thead>
+	  <th>Arrival Time</th>
+	</thead>
+      </tr>
+    </table>
+</div>
 <div id="historic_content" class="overlay_content">
-  <a href="#" class="close">Close</a>
-  <div id="history_graph"></div>
+  <div class="histtitle">
+    <a href="#" class="close">Close</a> 
+    Date: <input type="text" id="historic_date" value="6/27/2011"> 
+    Time: <select class="timesel" id="historic_start"></select> 
+    to <select class="timesel" id="historic_end"></select><input type="submit" id="historic_submit" value="Execute">
+  </div>
+  <div id="history_graph">
+    <img src="images/loader.gif" id="historic_holder" style="display:none">
+  </div>
 </div>
 <div id="content">
   <div id="selects" style="float:left;position: relative;" class="rounded content">
@@ -391,7 +304,7 @@ function createResultRow(busest, timeToDest) {
 	  <option id="-1">Directions</option>
 	</select>
       </div>
-      <div>
+      <Div>
 	<p>Pick starting and ending stations</p>
 	<select id="station_from" disabled>
 	  <option id="-1">Starting Station</option>
