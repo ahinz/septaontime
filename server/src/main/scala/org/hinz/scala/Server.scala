@@ -56,7 +56,7 @@ class Server(ld:RouteLoader) {
       val routeData = ld.loadRoutePoints(Map("route_id" -> r.id.toString))
 
       val ll1 = LatLon(bd1.lat, bd1.lon)
-      val ll2 = LatLon(bd1.lat, bd2.lon)
+      val ll2 = LatLon(bd2.lat, bd2.lon)
       val rslt = e.nearestPointOnRoute(routeData, ll1).map(_.distanceTo(ll1))
 
       if (rslt.isDefined) {
