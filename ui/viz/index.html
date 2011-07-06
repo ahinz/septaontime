@@ -155,20 +155,32 @@
 		    });
 
 		    var prev = null;
+		    var nCols = 4;
+		    var col = 0;
+		    var newRow = "";
+
 		    arrivals.sort().map(function( arrival ) {
 			var dHours = dateToDecimalHours(new Date(arrival));
-			var newRow = "<tr><td>" + decimalHoursToTime(dHours) + "</td>";
+			newRow += "<td>" + decimalHoursToTime(dHours);
 
-			if (prev == null) {
-			    newRow += "<td></td>";
-			} else {
-			    newRow += "<td>" + (parseInt(dHours*60) - parseInt(prev*60)) + "</td>";
+			if (prev != null) {
+			    newRow += "(" + (parseInt(dHours*60) - parseInt(prev*60)) + " mins)";
 			}
+
+			newRow += "</td>";
 
 			prev = dHours;
 
-			table.append(newRow + "</tr>");
+			if (col >= nCols) {
+			    col = 0;
+			    table.append("<tr>" + newRow + "</tr>");
+			    newRow = "";
+			} else {
+			    col += 1;
+			}
 		    });
+
+		    table.append("<tr>" + newRow + "</tr>");
 		    
 		    $("#sch_submit").removeAttr("disabled");
 		}
@@ -243,7 +255,7 @@
 
 	    createGraph({
 		element: 'history_graph',
-		start: start,
+		start: parseFloat(start) - offset,
 		end: end,
 		offset: offset,
 		incr: incr,
