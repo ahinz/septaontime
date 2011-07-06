@@ -23,6 +23,7 @@
 	    center: latlng,
 	    mapTypeId: google.maps.MapTypeId.ROADMAP
 	};
+
 	var map = new google.maps.Map(document.getElementById("map"),
 				  myOptions);	
 
@@ -215,6 +216,17 @@
 	    $("#historic_content").css("display","block");
 	});
 
+	$("#curconds").click(function( button ) {
+	    $("#real_content").css("display","block");
+	    var latlng = new google.maps.LatLng(39.9522222, -75.1641667);
+	    var myOptions = {
+		zoom: 12,
+		center: latlng,
+		mapTypeId: google.maps.MapTypeId.ROADMAP
+	    };
+	    var real_map = new google.maps.Map(document.getElementById("real_map"), myOptions); 
+	});
+
 	$("#createschd").click(function( button ) {
 	    $("#sch_content").css("display","block");
 	});
@@ -276,6 +288,10 @@
   </script>
 </head>
 <body>
+<div id="real_content" class="overlay_content">
+    <a href="#" class="close">Close</a>
+    <div id="real_map" style="width: 100%; height: 95%;"></div>
+</div>
 <div id="sch_content" class="overlay_content">
     <a href="#" class="close">Close</a> 
   Date: <input type="text" id="sch_date" value="6/27/2011"><input type="submit" id="sch_submit">

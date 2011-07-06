@@ -22,8 +22,13 @@ import JSONP._
  * Mapping services
  *
  * Routes:
- * /map/{route}/{lat1},{lon1}/to/{lat2},{lon2}/       - Return lat/lon points for the given
- *                                                      route. There is no est data returned
+ * /map/{route}/{lat1},{lon1}/to/{lat2},{lon2}/
+ *     Return lat/lon points for the given route. There is no est data returned.
+ * 
+ * /map/intervals/{route}/{dir}/{lat},{lon}/
+ *     Return time est for each summary interval
+ * Params:
+ *  map    boolean       sepecify 0 to exclude any gis data from being returned [default 1]
  * 
  */
 trait MappingServiceBuilder extends ServiceBuilder {
@@ -34,6 +39,67 @@ trait MappingServiceBuilder extends ServiceBuilder {
   val estimator: Estimator
 
   val mapService = {
+    pathPrefix("map" / "intervals" / "[^/]*".r / "[^/]+".r / "([^,]+),".r ~ "[^/]+".r) {
+      (routeNum, dir, lat, lon) =>
+	path("") {
+	  parameters('callback ?, 'map ?) {
+	    (callback, map) =>
+	      get(ctxt => {
+		val pt = LatLon(lat.toDouble, lon.toDouble)
+
+                val possibleRoutes = loader.loadRoutes(Map("shortname" -> routeNum))
+                
+                println("* Identified the following possible routes: \n" + possibleRoutes)
+                
+                val routePts = possibleRoutes.map(r => 
+                  (r.id, loader.loadRoutePoints(Map("route_id" -> r.id.toString))))
+
+                val ptPos = routePts.map(rte => 
+		  if(estimator.nearestPointOnRoute(rte._2,pt).isDefined)
+		    Some(rte._1)
+		  else
+		    None).flatten
+
+		if (ptPos == Nil) {
+		  println("* Error the given point was not on the route!")
+		  ctxt.fail(HttpStatusCodes.NotFound)
+		} else {
+		  val today = new Date()
+		  val yesterday = new Date(today.getTime() - 1000*60*60*24 + 1)
+		
+		  val routeId = ptPos.head
+  
+		  val cal = Calendar.getInstance()
+		  
+		  cal.set(Calendar.HOUR_OF_DAY, 0)
+		  cal.set(Calendar.MINUTE, 0)
+		  
+		  val midnight_am = cal.getTime()
+		  
+		  cal.set(Calendar.HOUR_OF_DAY, 23)
+		  cal.set(Calendar.MINUTE, 59)
+		  val midnight_pm = cal.getTime()
+		  
+		  val ivals = loader.loadIntervals(routeId)
+		  val model = Model(routeId, 
+				    0.1, 
+				    10,
+				    (yesterday, Some(today)),  
+				    (midnight_am, midnight_pm),
+				    (0, ivals.map(_.end).max(Ordering[Double])))
+		  
+		  val ests = estimator.estimateIntervals(List(model), ivals)
+		  
+		  if (map == "0") {
+		    ctxt.complete(jsonp(callback, write(ests)))
+		  } else {
+		    ctxt.complete(jsonp(callback, write(fillOut(routeId, ests))))
+		  }
+		}
+	      })
+	  }
+	}
+    } ~
     pathPrefix("map" / "\\d+".r / "([^,]+),".r ~ "[^/]+".r / "to" / "([^,]+),".r ~ "[^/]+".r) {
       (routeId, lat1, lon1, lat2, lon2) =>
         path("")(

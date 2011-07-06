@@ -211,3 +211,24 @@ function fillTimeSelect(sel, from, to, incr) {
 	select.append('<option value="' + j + '">' + decimalHoursToTime(j) + "</option>");
     }
 }
+
+function mk_color( mph ) {
+    var greenpt = 50; // Point at which all values above are green
+    var midpt = greenpt / 2.0;
+    if (mph < midpt) {
+	return "#FF" + pad2(Math.floor((mph/midpt)*255.0).toString(16)) + "00";
+    } else if (mph > greenpt) {
+	return "#00FF00";
+    } else {
+	var clr = (1.0 - mph/greenpt)*255.0;
+	return "#" + pad2(Math.floor(clr).toString(16)) + "FF00";
+    }
+}
+
+function pad2(str) {
+    if (str.length < 2) {
+	return "0" + str;
+    } else {
+	return str;
+    }
+}
