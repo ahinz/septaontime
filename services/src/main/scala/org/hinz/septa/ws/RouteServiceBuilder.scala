@@ -15,6 +15,7 @@ import Actor._
 import net.liftweb.json._
 import net.liftweb.json.Serialization._
 
+import java.text._
 import java.util.{Date,Calendar}
 import JSONP._
 
@@ -22,11 +23,12 @@ import JSONP._
  * Station service provides the actual estimates
  * 
  * Routes:
- * /station/1492                 - Return info about station #1492
- * /station/1492/bus/44/east     - Return bus estimates for route 44 at stop #1492 going east
- * /station/1492/to/2522/west    - Return bus estimates from station 1492 to 2522 going west
+ * /station/1492                  - Return info about station #1492
+ * /station/1492/bus/44/east      - Return bus estimates for route 44 at stop #1492 going east (addl model params apply)
+ * /station/1492/to/2522/west     - Return bus estimates from station 1492 to 2522 going west (addl model params apply)
+ * /station/1492/schedule/44/east?date={date} - Return the schedule for busses on route 44 arriving at station 1492 on date going eastbound
  *
- * For the last two you can specify the following additional model params [default]:
+ * Additional Model Params [default]:
  * segmentSizeKm              - Size of the summary segment (must be > 0.1) [0.1]
  * startDate                  - Start date in milliseconds for interp [24 hours ago]
  * endDate                    - End date in milliseconds for interp ['now']
@@ -74,6 +76,13 @@ trait StationServiceBuilder extends ServiceBuilder {
                    parseTime(timeStart + timeInc*j.toDouble + timeSpan)),
                   model.distRange))
 
+  def interpDate(endDate: Date, offsetSeconds: Double, startDist: Double, endDist: Double, dist: Double) = {
+    val distPct = (dist - startDist) / (endDist - startDist)
+    val startDate = endDate.getTime - offsetSeconds * 1000
+    
+    new Date((startDate + (endDate.getTime - startDate)*distPct).toLong)
+  }
+	
   val stationService = {
     pathPrefix("station" / "\\d+".r) { stationId =>
       path("") {
@@ -87,6 +96,49 @@ trait StationServiceBuilder extends ServiceBuilder {
               }
             })
         }
+      } ~ 
+      pathPrefix("schedule" / "\\d+".r / "[^/]*".r) { (route, direction) =>
+	path("") {
+	  parameters('callback ?, 'date) {
+	    (callback, date) =>
+	      get(ctxt => {
+		val d = DirectionFactory.directionForString(direction).get
+
+		val station = loader.loadStation(stationId.toInt) 
+		val routes = loader.loadRoutes(Map("shortname" -> route, "direction" -> d.db))
+
+		val selectedRoute = routes.head
+
+		println("* Using route " + selectedRoute)
+
+		val routepts = loader.loadRoutePoints(
+                        Map("route_id" -> selectedRoute.id.toString))
+
+		val stationLatLon = LatLon(station.head.lat.toDouble,station.head.lon.toDouble)
+                val stationDist = estimator.nearestPointOnRoute(routepts,stationLatLon).get.distanceTo(stationLatLon)
+		
+		val startDate = new Date(date.toLong)
+		val endDate = new Date(startDate.getTime + 1000*60*60*24 - 1)
+
+		println("* Intervals ranging from " + startDate + " to " + endDate)
+
+		val format = new SimpleDateFormat("yyyy-MM-dd")
+
+		val whereDist = stationDist + " > start_ref AND " + stationDist + " < end_ref";
+		val whereDate = "date(recordedAt, 'unixepoch') between '" + format.format(startDate) + "' and '" + format.format(endDate) + "'"
+		val whereBoth = "route_id = " + selectedRoute.id + " AND " + whereDist + " AND " + whereDate;
+
+		val ivals = loader.loadIntervalsWhere(whereBoth)
+
+		val dates = ivals.map(ival =>
+		  interpDate(ival.recordedAt, ival.time, ival.start, ival.end, stationDist).getTime)
+
+		println("* Identified " + ivals.size + " intervals")
+
+		ctxt.complete(jsonp(callback,write(dates)));
+	      })
+	  }
+	}
       } ~
       pathPrefix("to" / "\\d+".r / "[^/]+".r) { (endStation, direction) =>
         path("") {
