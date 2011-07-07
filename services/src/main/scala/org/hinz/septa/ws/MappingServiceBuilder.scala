@@ -91,9 +91,15 @@ trait MappingServiceBuilder extends ServiceBuilder with ServiceUtils {
 					(startTime, endTime),
 					(0, ivals.map(_.end).max(Ordering[Double])))
 
+		      var models = 
+			if (n != "")
+			  expandModel(model, time.toDouble, offset.toDouble, incr.toDouble, n.toInt)
+			else
+			  List(model)
+
 		      println("* Using the following model for estimation: \n" + model)
 		      
-		      val ests = estimator.estimateIntervals(List(model), ivals)
+		      val ests = estimator.estimateIntervals(models, ivals)
 		      
 		      if (map == "0") {
 			ctxt.complete(jsonp(callback, write(ests)))
