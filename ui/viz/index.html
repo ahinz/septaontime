@@ -212,19 +212,31 @@
 	    });
 	});
 
+	$("#real_submit").click(function( element ) {
+	    $("#real_holder").css("display","block");
+
+	    var date = $.datepicker.parseDate("mm/dd/yy",
+					      $("#real_date").val());
+	    var time = parseFloat($("#real_time").val());
+
+	    createRouteVelocityGraph("real_map", 
+				     selectedRoute, 
+				     selectedDirection, 
+				     stationLatLons[stationId],
+				     date,
+				     time,
+				     function () {
+					 $("#real_holder").css("display","none");
+				     });
+
+	});
+
 	$("#historic").click(function( button ) {
 	    $("#historic_content").css("display","block");
 	});
 
 	$("#curconds").click(function( button ) {
 	    $("#real_content").css("display","block");
-	    var latlng = new google.maps.LatLng(39.9522222, -75.1641667);
-	    var myOptions = {
-		zoom: 12,
-		center: latlng,
-		mapTypeId: google.maps.MapTypeId.ROADMAP
-	    };
-	    var real_map = new google.maps.Map(document.getElementById("real_map"), myOptions); 
 	});
 
 	$("#createschd").click(function( button ) {
@@ -237,9 +249,11 @@
 
 	$("#sch_date").datepicker();
 	$("#historic_date").datepicker();
+	$("#real_date").datepicker();
 
 	fillTimeSelect("historic_start", 7.0, 20.0, 0.5);
 	fillTimeSelect("historic_end", 7.0, 20.0, 0.5);
+	fillTimeSelect("real_time", 7.0, 20.0, 0.5);
 
 	$("#historic_start").val(7.0);
 	$("#historic_end").val(20.0);
@@ -290,7 +304,12 @@
 <body>
 <div id="real_content" class="overlay_content">
     <a href="#" class="close">Close</a>
-    <div id="real_map" style="width: 100%; height: 95%;"></div>
+    Date: <input type="text" id="real_date" value="6/27/2011">
+    Time: <select class="timesel" id="real_time"></select>
+    <input type="submit" value="Execute" id="real_submit">
+    <img src="images/loader.gif" id="real_holder" class="image_holder" style="display:none">
+    <div id="real_map" style="width: 100%; height: 95%;">
+    </div>
 </div>
 <div id="sch_content" class="overlay_content">
     <a href="#" class="close">Close</a> 
@@ -311,7 +330,7 @@
     to <select class="timesel" id="historic_end"></select><input type="submit" id="historic_submit" value="Execute">
   </div>
   <div id="history_graph">
-    <img src="images/loader.gif" id="historic_holder" style="display:none">
+    <img src="images/loader.gif" id="historic_holder" class="image_holder" style="display:none">
   </div>
 </div>
 <div id="content">

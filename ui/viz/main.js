@@ -232,3 +232,51 @@ function pad2(str) {
 	return str;
     }
 }
+
+function createRouteVelocityGraph(mapElement,selectedRoute,selectedDirection,slatlng,date,time,cb) {
+    $("#" + mapElement).empty();
+
+    var latlng = new google.maps.LatLng(39.9522222, -75.1641667);
+    var myOptions = {
+	zoom: 12,
+	center: latlng,
+	mapTypeId: google.maps.MapTypeId.ROADMAP
+    };
+
+    $.ajax({
+	url: baseURL + "map/intervals/" + selectedRoute + "/" + selectedDirection + "/" + slatlng.lat() + "," + slatlng.lng() + "/?date=" + date.getTime() + "&time=" + time + "&offset=2.0",
+		dataType: 'jsonp',
+		success: function( ests ) {
+		    if (cb !== undefined) {
+			cb();
+		    }
+
+		    var real_map = new google.maps.Map(document.getElementById(mapElement), myOptions);
+		    var bounds = null; 
+		    ests.map( function( est ) {
+			var pts = est.pts.map(function( ll ) {
+			    var gll = new google.maps.LatLng(ll.lat, ll.lon);
+			    if (bounds == null) {
+				bounds = new google.maps.LatLngBounds(gll);
+			    } else {
+				bounds = bounds.extend(gll);
+			    }
+
+			    return gll;
+			});
+
+			var mph = est.ival.v[0] * 2.23693629;
+
+			new google.maps.Polyline({
+			    path: pts,
+			    strokeColor: mk_color(mph),
+			    strokeOpacity: '1.0',
+			    strokeWeight: 5,
+			    title: mph + " mph",
+			    map: real_map
+			});
+		    });
+		    real_map.fitBounds(bounds);
+		}
+	    });
+}
