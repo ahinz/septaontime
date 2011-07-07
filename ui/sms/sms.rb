@@ -60,6 +60,7 @@ end
 
 ######## Save Functions ########
 def save_command(caller, name, cmd)
+  cmd = cmd.gsub(" ","+")
   req(SURL + "?caller=#{caller}&name=#{name}&str=#{cmd}&cmd=add")
 end
 
