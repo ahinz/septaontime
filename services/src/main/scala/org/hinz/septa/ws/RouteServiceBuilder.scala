@@ -30,6 +30,17 @@ trait ServiceUtils {
     c.set(Calendar.MINUTE, minutes.toInt)
     c.getTime()      
   }
+
+  def expandModel(model: Model, timeStart: Double, timeSpan: Double, timeInc: Double, numModels: Int):List[Model] = 
+    for(j <- (0 until numModels).toList)
+      yield(Model(model.route,
+                  model.summarySegmentSizeKm,
+                  model.maxNumberOfIntervals,
+                  model.dateRange,
+                  (parseTime(timeStart + timeInc*j.toDouble),
+                   parseTime(timeStart + timeInc*j.toDouble + timeSpan)),
+                  model.distRange))
+
 }
 
 /**
@@ -66,16 +77,6 @@ trait StationServiceBuilder extends ServiceBuilder with ServiceUtils {
 
     c.get(Calendar.HOUR_OF_DAY).toDouble + c.get(Calendar.MINUTE).toDouble/60.0
   }
-
-  def expandModel(model: Model, timeStart: Double, timeSpan: Double, timeInc: Double, numModels: Int):List[Model] = 
-    for(j <- (0 until numModels).toList)
-      yield(Model(model.route,
-                  model.summarySegmentSizeKm,
-                  model.maxNumberOfIntervals,
-                  model.dateRange,
-                  (parseTime(timeStart + timeInc*j.toDouble),
-                   parseTime(timeStart + timeInc*j.toDouble + timeSpan)),
-                  model.distRange))
 
   def interpDate(endDate: Date, offsetSeconds: Double, startDist: Double, endDist: Double, dist: Double) = {
     val distPct = (dist - startDist) / (endDist - startDist)
