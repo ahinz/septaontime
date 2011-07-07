@@ -98,6 +98,14 @@ trait StationServiceBuilder extends ServiceBuilder with ServiceUtils {
             })
         }
       } ~
+      path("routes") {
+	parameter('callback ?) {
+	  callback =>
+	    get(ctxt => {
+	      ctxt.complete(jsonp(callback, write(loader.routesForStation(stationId.toInt))))
+	    })
+	}
+      } ~		  
       pathPrefix("schedule" / "\\d+".r / "[^/]*".r) { (route, direction) =>
 	path("") {
 	  parameters('callback ?, 'date) {
