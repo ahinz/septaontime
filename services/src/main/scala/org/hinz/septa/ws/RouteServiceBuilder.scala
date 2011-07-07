@@ -19,6 +19,19 @@ import java.text._
 import java.util.{Date,Calendar}
 import JSONP._
 
+trait ServiceUtils {
+  def parseTime(time: Double) =  {
+    val c = Calendar.getInstance()
+    val hours = time.toInt
+    val minutesFrac = time.toDouble - hours
+    val minutes = minutesFrac * 60.0
+    
+    c.set(Calendar.HOUR_OF_DAY, hours)
+    c.set(Calendar.MINUTE, minutes.toInt)
+    c.getTime()      
+  }
+}
+
 /**
  * Station service provides the actual estimates
  * 
@@ -40,23 +53,12 @@ import JSONP._
  * seriesTimeIncrement        - Increment for time [in decimal hours]
  * numberOfRuns               - Number of runs (must be <= 8) [1]
  */
-trait StationServiceBuilder extends ServiceBuilder {
+trait StationServiceBuilder extends ServiceBuilder with ServiceUtils {
   implicit val stationFormats = Serialization.formats(NoTypeHints)
 
   val fixedDataLoader:FixedDataLoader
   val loader: RouteLoader
   val estimator: Estimator
-
-  def parseTime(time: Double) =  {
-    val c = Calendar.getInstance()
-    val hours = time.toInt
-    val minutesFrac = time.toDouble - hours
-    val minutes = minutesFrac * 60.0
-    
-    c.set(Calendar.HOUR_OF_DAY, hours)
-    c.set(Calendar.MINUTE, minutes.toInt)
-    c.getTime()      
-  }
 
   def curTime() = {
     val c = Calendar.getInstance()
@@ -96,6 +98,14 @@ trait StationServiceBuilder extends ServiceBuilder {
             })
         }
       } ~
+      path("routes") {
+	parameter('callback ?) {
+	  callback =>
+	    get(ctxt => {
+	      ctxt.complete(jsonp(callback, write(loader.routesForStation(stationId.toInt))))
+	    })
+	}
+      } ~		  
       pathPrefix("schedule" / "\\d+".r / "[^/]*".r) { (route, direction) =>
 	path("") {
 	  parameters('callback ?, 'date) {
@@ -290,10 +300,14 @@ trait StationServiceBuilder extends ServiceBuilder {
                                                     intervals)
                         })
                           
-                        println("* Results: " + busEsts.flatten.flatten)
+			val busArray = busEsts.flatten.flatten
+			val trimmedBusArray = busArray.foldLeft(Map[String,BusEst]()) { (map,est) => map + ((est.busId, est)) }.values.toList
+
+                        println("* Results: " + busArray)
+			println("\t Trimmed: " + trimmedBusArray)
 
                         ctxt.complete(
-                          jsonp(callback, write(busEsts.flatten.flatten)))
+                          jsonp(callback, write(trimmedBusArray)))
                         
                       } else {
                         println("invalid direction")
