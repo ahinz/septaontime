@@ -102,7 +102,7 @@ object GTFSLoader {
     }
   }
 
-  val stations = readRouteData(rsrc)
+  lazy val stations = readRouteData(rsrc)
 
 }
 
