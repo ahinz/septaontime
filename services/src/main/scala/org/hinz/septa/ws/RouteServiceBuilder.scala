@@ -300,10 +300,14 @@ trait StationServiceBuilder extends ServiceBuilder with ServiceUtils {
                                                     intervals)
                         })
                           
-                        println("* Results: " + busEsts.flatten.flatten)
+			val busArray = busEsts.flatten.flatten
+			val trimmedBusArray = busArray.foldLeft(Map[String,BusEst]()) { (map,est) => map + ((est.busId, est)) }.values.toList
+
+                        println("* Results: " + busArray)
+			println("\t Trimmed: " + trimmedBusArray)
 
                         ctxt.complete(
-                          jsonp(callback, write(busEsts.flatten.flatten)))
+                          jsonp(callback, write(trimmedBusArray)))
                         
                       } else {
                         println("invalid direction")
