@@ -80,8 +80,8 @@ trait MappingServiceBuilder extends ServiceBuilder with ServiceUtils {
 		      
 		      val routeId = ptPos.head
 
-		      val endTime = parseTime(time.toDouble)
-		      val startTime = parseTime(time.toDouble - offset.toDouble)
+		      val startTime = parseTime(time.toDouble)
+		      val endTime = parseTime(time.toDouble + offset.toDouble)
 		      
 		      val ivals = loader.loadIntervals(routeId)
 		      val model = Model(routeId, 

@@ -1,5 +1,5 @@
 /**
- * Create a new grapah by execute an async ajax request to
+ * Create new grapah by execute an async ajax request to
  * load historic data from the web services
  *
  * Parameter elements:
@@ -197,10 +197,13 @@ function decimalHoursToTime(dhours) {
 
     var ampm = "am";
 
-    if (hours > 12) {
-	hours -= 12;
+    if (hours >= 12) {
 	ampm = "pm";
     }
+    if (hours >= 13) {
+	hours -= 12;
+    }
+
 
     return hours + ":" + minutes.substring(0,2) + " " + ampm;
 }
@@ -233,11 +236,16 @@ function pad2(str) {
     }
 }
 
-function createRouteVelocityBand(tgtDiv, selectedRoute,selectedDirection,slatlng,date,time,cb) {
+function createRouteVelocityBand(tgtDiv, selectedRoute,selectedDirection,slatlng,date,stime,etime,cb) {
+    var incr = 0.25;
+    var offset = 2.0;
+    var numModels = parseInt((etime - stime + offset)/incr);
     var div = $("#" + tgtDiv);
 
+    div.empty();
+
     $.ajax({
-	url: baseURL + "map/intervals/" + selectedRoute + "/" + selectedDirection + "/" + slatlng.lat() + "," + slatlng.lng() + "/?date=" + date.getTime() + "&time=" + time + "&offset=2.0&map=0&incr=0.25&n=50",
+	url: baseURL + "map/intervals/" + selectedRoute + "/" + selectedDirection + "/" + slatlng.lat() + "," + slatlng.lng() + "/?date=" + date.getTime() + "&time=" + (stime - offset) + "&offset=" + offset +"&map=0&incr=0.25&n=" + numModels,
 		dataType: 'jsonp',
 		success: function( ests ) {
 		    if (cb !== undefined) {
@@ -261,13 +269,17 @@ function createRouteVelocityBand(tgtDiv, selectedRoute,selectedDirection,slatlng
 
 		    var pixelsPerKm = width / max;
 
-		    alert(JSON.stringify(ests));
-
+		  
+		    var t = stime;
 		    for(var i=0;i<nRows;i+=1) {
 			var divs = "<div>";
 			ests.map(function( est ) {
 			    divs  += '<div style="height: 6px; width:' + ((est.endDist - est.startDist)*pixelsPerKm) + 'px; background-color: ' + mk_color(est.v[i] * 2.23693629) + '; float:left;">&nbsp;</div>';
 			});
+			if (i % 4 == 0) {
+			    divs += '<div style="float: left; height: 6px;">' +  decimalHoursToTime(stime) + '</div>';
+			}
+			stime += incr;
 			divs += '<div style="clear: both;"></div></div>';
 			div.append(divs);
 		    }

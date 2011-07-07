@@ -238,14 +238,31 @@
 	$("#histconds").click(function( button ) {
 	    $("#vel_content").css("display","block");
 
+	});
+
+	$("#vel_submit").click(function( button ) {
+
+	    var velDate = $("#vel_date");
+	    var start = parseFloat($("#vel_time_start").val());
+	    var offset = 2.0;
+	    var incr = .25;
+	    var end = parseFloat($("#vel_time_end").val());
+	    var instance = velDate.data( "datepicker" );
+	    var date = $.datepicker.parseDate("mm/dd/yy",
+					       velDate.val());
+
+	    var holder = $("#vel_holder");
+	    holder.css("display","block");
+	    
 	    createRouteVelocityBand("vcontent", 
 				    selectedRoute, 
 				    selectedDirection, 
 				    stationLatLons[stationId],
-				    new Date(2011,5,27),
-				    "7.0",
+				    date,
+				    start,
+				    end,
 				    function () {
-					
+					holder.css("display","none");
 				    });
 	});
 
@@ -263,22 +280,23 @@
 
 	$("#sch_date").datepicker();
 	$("#historic_date").datepicker();
-	$("#real_date").datepicker();
+	$("#real_date").datepicker(); 
+	$("#vel_date").datepicker(); 
 
 	fillTimeSelect("historic_start", 7.0, 20.0, 0.5);
 	fillTimeSelect("historic_end", 7.0, 20.0, 0.5);
 	fillTimeSelect("real_time", 7.0, 20.0, 0.5);
+	fillTimeSelect("vel_time_start", 7.0, 20.0, 0.5);
+	fillTimeSelect("vel_time_end", 7.0, 22.0, 0.5)
 
 	$("#historic_start").val(7.0);
 	$("#historic_end").val(20.0);
-
-    
-
+   
 	$("#historic_submit").click(function( element ) {
-	    $(this).attr("disabled","disabled");
-	    $("#historic_start").attr("disabled","disabled");
-	    $("#historic_end").attr("disabled","disabled");
-	    $("#historic_date").attr("disabled","disabled");
+	    var elements = [$("#historic_sumbmit"),$("#historic_start"),$("#historic_end"),$("#historic_date")];
+	    elements.map(function( element ) {
+		element.attr("disabled","disabled");
+	    });
 
 	    var histDate = $("#historic_date");
 	    var start = $("#historic_start").val();
@@ -291,7 +309,8 @@
 
 	    $("#historic_holder").css("display","inline");
 
-	    var name = "blah";
+	    var nameStation1 = $("#station_from option:selected").text();
+	    var nameStation2 = $("#station_to option:selected").text();
 
 	    createGraph({
 		element: 'history_graph',
@@ -301,12 +320,16 @@
 		incr: incr,
 		date: date,
 		startStation: stationId,
-		startStationName: name,
+		startStationName: nameStation1,
 		endStation: toStationId,
-		endStationName: name,
+		endStationName: nameStation2,
 		direction: selectedDirection,
 		callback: function() {
 		    $("#historic_holder").remove();
+		    elements.map(function( element ) {
+			element.removeAttr("disabled");
+		    });
+
 		}
 	    });
 	});
@@ -318,6 +341,10 @@
 <body>
 <div id="vel_content" class="overlay_content">
   <a href="#" class="close">Close</a>
+  Date: <input type="text" id="vel_date" value="6/25/2011"> 
+  From <select id="vel_time_start" class="timesel"></select> to <select id="vel_time_end" class="timesel"></select>
+  <input type="submit" value="Execute" id="vel_submit">
+  <img src="images/loader.gif" id="vel_holder" class="image_holder" style="display:none">
   <div id="vcontent"></div>
 </div>
 <div id="real_content" class="overlay_content">
