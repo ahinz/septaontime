@@ -58,7 +58,7 @@ th {
 #selects {
     height: 100%;
     width: 240px;
-    height: 640px;
+    /*height: 640px;*/
 }
 
 #title {
@@ -149,31 +149,6 @@ p {
     border-top-left-radius: 8px;
     border-top-right-radius: 8px;
 }
-
-/*
-#title {
-    background-color: green;
-    width: 720px;
-    margin-left: -10px;
-    margin-top: -10px;
-    height: 50px;
-}
-
-
-
-#selects {
-    background-color: red;
-    margin: 0 auto;
-}
-
-h1 {
-    text-align: center;
-    height: 40px;
-}
-
-#selects {
-
-}*/
 
 .overlay_content {
 	display: none;
