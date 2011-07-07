@@ -171,6 +171,20 @@ function dateToDecimalHours(date) {
     return parseFloat(date.getHours()) + parseFloat(date.getMinutes() / 60.0);
 }
 
+function time2str(time) {
+    if (time === undefined || time == "") {
+	return "";
+    }
+
+    if (time >= 0) {
+	return parseInt(time) + " minutes";
+    } else if (parseInt(time) == 0) {
+	return "now";
+    } else {
+	return parseInt(time)*-1 + " minutes ago";
+    }
+}
+
 function createResultRow(busest, timeToDest) {
     var timeStr = ""
     if(typeof timeToDest !== "undefined") {
@@ -179,8 +193,8 @@ function createResultRow(busest, timeToDest) {
 
     return "<tr class=\"result\"><td>" + busest.busId + "</td>" +
 	"<td>" + busest.blockId + "</td>" +
-	"<td>" + busest.arrival[0] + "</td>" + 
-	"<td>" + timeStr + "</td></tr>";
+	"<td>" + time2str(busest.arrival[0]) + "</td>" + 
+	"<td>" + time2str(timeStr) + "</td></tr>";
 }
 
 function decimalHoursToTime(dhours) {
