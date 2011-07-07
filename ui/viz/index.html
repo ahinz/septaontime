@@ -293,7 +293,7 @@
 	$("#historic_end").val(20.0);
    
 	$("#historic_submit").click(function( element ) {
-	    var elements = [$("#historic_sumbmit"),$("#historic_start"),$("#historic_end"),$("#historic_date")];
+	    var elements = [$("#historic_submit"),$("#historic_start"),$("#historic_end"),$("#historic_date")];
 	    elements.map(function( element ) {
 		element.attr("disabled","disabled");
 	    });
@@ -307,7 +307,9 @@
 	    var date = $.datepicker.parseDate("mm/dd/yy",
 					       histDate.val());
 
-	    $("#historic_holder").css("display","inline");
+	    $("#historic_holder").css("display","block");
+
+	    $("#history_graph").empty();
 
 	    var nameStation1 = $("#station_from option:selected").text();
 	    var nameStation2 = $("#station_to option:selected").text();
@@ -325,7 +327,7 @@
 		endStationName: nameStation2,
 		direction: selectedDirection,
 		callback: function() {
-		    $("#historic_holder").remove();
+		    $("#historic_holder").css("display","none");
 		    elements.map(function( element ) {
 			element.removeAttr("disabled");
 		    });
@@ -374,8 +376,8 @@
     Time: <select class="timesel" id="historic_start"></select> 
     to <select class="timesel" id="historic_end"></select><input type="submit" id="historic_submit" value="Execute">
   </div>
+  <img src="images/loader.gif" id="historic_holder" class="image_holder" style="display:none">
   <div id="history_graph">
-    <img src="images/loader.gif" id="historic_holder" class="image_holder" style="display:none">
   </div>
 </div>
 <div id="content">
