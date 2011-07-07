@@ -26,6 +26,8 @@
 
 	var map = new google.maps.Map(document.getElementById("map"),
 				  myOptions);	
+	var toMapItems = [];
+	var fromMapItems = [];
 
 	var bounds = null;
 	var busLines = [];
@@ -36,10 +38,9 @@
 	    dataType: 'jsonp',
 	    success: function( routes ) {
 		var routeSelect = $("#route")
+		
 		routeSelect.attr("disabled",false);
-		routes.map(function( route ) {
-		    routeSelect.append("<option>" + route + "</option>");
-		});
+		setSelectData("route", routes);
 	    }
 	});
 
@@ -52,7 +53,15 @@
 
 	$("#route").change(function() {
 	    selectedRoute = $(this).val();
+	   
 	    var dirSel = $("#dir");
+
+	    selectedDirection = null;
+	    stationId = null;
+	    toStationId = null;
+	    
+	    resetSelect([dirSel, $("#station_to"), $("#station_from")]);
+
 	    $.ajax({
 		url: baseURL + "routes/" + selectedRoute,
 		dataType: 'jsonp',
@@ -68,8 +77,15 @@
 
 	$("#dir").change(function() {
 	    selectedDirection = $(this).val();
+
+	    stationId = null;
+	    stationFromId = null;
+
 	    var stationSel = $("#station_from");
 	    var stationToSel = $("#station_to");
+
+	    resetSelect([stationSel, stationToSel]);
+
 	    $.ajax({
 		url: baseURL + "routes/" + selectedRoute + "/" + selectedDirection,
 		dataType: 'jsonp',
@@ -100,12 +116,26 @@
 	$("#station_from").change(function() {
 	    $("#placeholder").html("Loading estimates...");
 	    stationId = $(this).val();
-	    
+	    toStationId = null;
+
+	    // Clear "to" station
+	    $("#station_to").val("init");
+	    toMapItems.map(function( item ) {
+		item.setMap(null);
+	    });
+
+	    fromMapItems.map(function( item ) {
+		item.setMap(null);
+	    });
+
+	    fromMapItems = [];
+	    toMapItems = [];
+
 	    stationLatLon = stationLatLons[stationId];
-	    new google.maps.Marker({
+	    fromMapItems.push(new google.maps.Marker({
 		position: stationLatLon,
 		map: map
-	    });
+	    }));
 
 	    bounds = new google.maps.LatLngBounds(stationLatLon,stationLatLon);
 
@@ -123,15 +153,15 @@
 		    renderTable("est", mostRecentEsts);
 
 		    estimates.map(function( estimate ) {
-			new google.maps.Marker({
+			fromMapItems.push(new google.maps.Marker({
 			    position: new google.maps.LatLng(estimate.bus.lat, estimate.bus.lon),
 			    map: map,
 			    icon: "http://www3.septa.org/transitview/images/bus_blue.png"
-			});
+			}));
 
 			drawLine(stationLatLon.lat(), stationLatLon.lng(),
 				 estimate.bus.lat, estimate.bus.lon,
-				 selectedRoute, map, bounds, busLines, "#F00");
+				 selectedRoute, map, bounds, fromMapItems, "#F00");
 		    });
 		}
 	    });
@@ -192,16 +222,22 @@
 
 	    toStationId = $(this).val();
 
+	    toMapItems.map(function( item ) {
+		item.setMap(null);
+	    });
+
+	    toMapItems = [];
+
 	    var toStationLatLon = stationLatLons[toStationId];
 
-	    new google.maps.Marker({
+	    toMapItems.push(new google.maps.Marker({
 		position: toStationLatLon,
 		map: map
-	    });
+	    }));
 
 	    drawLine(stationLatLon.lat(), stationLatLon.lng(),
 		     toStationLatLon.lat(), toStationLatLon.lng(),
-		     selectedRoute, map, bounds, busLines, "#00F");
+		     selectedRoute, map, bounds, toMapItems, "#00F");
 
 	    $.ajax({
 		url: baseURL + "station/" + stationId + "/to/" + toStationId + "/" + selectedDirection,
@@ -390,23 +426,23 @@
       <div>
 	<p>Select Route & Direction</p>
 	<select id="route" disabled>
-	  <option id="-1">Routes</option>
+	  <option id="init">Routes</option>
 	</select>
       </div>
       <div>
 	<select id="dir" disabled>
-	  <option id="-1">Directions</option>
+	  <option id="init">Directions</option>
 	</select>
       </div>
       <Div>
 	<p>Pick starting and ending stations</p>
 	<select id="station_from" disabled>
-	  <option id="-1">Starting Station</option>
+	  <option id="init">Starting Station</option>
 	</select>		 
       </div>
       <div>
 	<select id="station_to" disabled>
-	  <option id="-1">Arrival Station</option>
+	  <option id="init">Arrival Station</option>
 	</select>
       </div>
     </div>

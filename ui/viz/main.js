@@ -1,3 +1,37 @@
+function resetSelect(sels) {
+    sels.map(function( item ) { 
+	item.attr("disabled","disabled");
+
+	item.children().map(function( idx,element ) {
+	    if (idx > 0) { $(element).remove(); }
+	});
+
+	item.val("init");
+    });
+}
+
+function setSelectData(selId, data, textCallback, valCallback) {
+    var sel = $("#" + selId);
+
+    if (textCallback === undefined) {
+	textCallback = function( input ) { return input; }
+    }
+    
+    sel.children().map(function( idx, element ) {
+	if (idx > 0) { $(element).remove(); }
+    });
+
+    data.map(function( datum ) {
+	var newOption = $("<option>" + textCallback(datum) + "</option>");
+	if (valCallback !== undefined) {
+	    newOption = newOption.attr("value",valCallback(datum));
+	}
+
+	sel.append(newOption);
+    });
+}
+
+
 /**
  * Create new grapah by execute an async ajax request to
  * load historic data from the web services
