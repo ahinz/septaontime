@@ -213,7 +213,7 @@ function fillTimeSelect(sel, from, to, incr) {
 }
 
 function mk_color( mph ) {
-    var greenpt = 50; // Point at which all values above are green
+    var greenpt = 30; // Point at which all values above are green
     var midpt = greenpt / 2.0;
     if (mph < midpt) {
 	return "#FF" + pad2(Math.floor((mph/midpt)*255.0).toString(16)) + "00";
