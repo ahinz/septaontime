@@ -213,7 +213,7 @@ function fillTimeSelect(sel, from, to, incr) {
 }
 
 function mk_color( mph ) {
-    var greenpt = 30; // Point at which all values above are green
+    var greenpt = 55; // Point at which all values above are green
     var midpt = greenpt / 2.0;
     if (mph < midpt) {
 	return "#FF" + pad2(Math.floor((mph/midpt)*255.0).toString(16)) + "00";
@@ -231,6 +231,49 @@ function pad2(str) {
     } else {
 	return str;
     }
+}
+
+function createRouteVelocityBand(tgtDiv, selectedRoute,selectedDirection,slatlng,date,time,cb) {
+    var div = $("#" + tgtDiv);
+
+    $.ajax({
+	url: baseURL + "map/intervals/" + selectedRoute + "/" + selectedDirection + "/" + slatlng.lat() + "," + slatlng.lng() + "/?date=" + date.getTime() + "&time=" + time + "&offset=2.0&map=0&incr=0.25&n=50",
+		dataType: 'jsonp',
+		success: function( ests ) {
+		    if (cb !== undefined) {
+			cb();
+		    }
+
+		    var width = 680.0;
+
+		    var max = 0.0;
+		    var nRows = 0;
+
+		    ests.map(function( est ) {
+			var dist = est.endDist;
+			if (dist > max) {
+			    max = dist;
+			}
+			if (est.v.length > nRows) {
+			    nRows = est.v.length;
+			}
+		    });
+
+		    var pixelsPerKm = width / max;
+
+		    alert(JSON.stringify(ests));
+
+		    for(var i=0;i<nRows;i+=1) {
+			var divs = "<div>";
+			ests.map(function( est ) {
+			    divs  += '<div style="height: 6px; width:' + ((est.endDist - est.startDist)*pixelsPerKm) + 'px; background-color: ' + mk_color(est.v[i] * 2.23693629) + '; float:left;">&nbsp;</div>';
+			});
+			divs += '<div style="clear: both;"></div></div>';
+			div.append(divs);
+		    }
+		    
+		}
+	    });
 }
 
 function createRouteVelocityGraph(mapElement,selectedRoute,selectedDirection,slatlng,date,time,cb) {

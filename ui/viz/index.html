@@ -235,6 +235,20 @@
 	    $("#historic_content").css("display","block");
 	});
 
+	$("#histconds").click(function( button ) {
+	    $("#vel_content").css("display","block");
+
+	    createRouteVelocityBand("vcontent", 
+				    selectedRoute, 
+				    selectedDirection, 
+				    stationLatLons[stationId],
+				    new Date(2011,5,27),
+				    "7.0",
+				    function () {
+					
+				    });
+	});
+
 	$("#curconds").click(function( button ) {
 	    $("#real_content").css("display","block");
 	});
@@ -302,14 +316,18 @@
   </script>
 </head>
 <body>
+<div id="vel_content" class="overlay_content">
+  <a href="#" class="close">Close</a>
+  <div id="vcontent"></div>
+</div>
 <div id="real_content" class="overlay_content">
-    <a href="#" class="close">Close</a>
-    Date: <input type="text" id="real_date" value="6/27/2011">
-    Time: <select class="timesel" id="real_time"></select>
-    <input type="submit" value="Execute" id="real_submit">
-    <img src="images/loader.gif" id="real_holder" class="image_holder" style="display:none">
-    <div id="real_map" style="width: 100%; height: 95%;">
-    </div>
+  <a href="#" class="close">Close</a>
+  Date: <input type="text" id="real_date" value="6/27/2011">
+  Time: <select class="timesel" id="real_time"></select>
+  <input type="submit" value="Execute" id="real_submit">
+  <img src="images/loader.gif" id="real_holder" class="image_holder" style="display:none">
+  <div id="real_map" style="width: 100%; height: 95%;">
+  </div>
 </div>
 <div id="sch_content" class="overlay_content">
     <a href="#" class="close">Close</a> 
