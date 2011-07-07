@@ -48,7 +48,7 @@ th {
 }
 
 .content {
-    background-color: #E4F6F8;
+    background-color: #EEF7FF;
     border-color: #638291;
     border-style: solid;
     border-width: 2px;
@@ -62,8 +62,9 @@ th {
 }
 
 #title {
-    background-color: #E8EFF3;
-    color: #638291;
+    background-color: #7D9C9F; /*#E8EFF3;*/
+    color: #333; /*#638291;*/
+    font-family:"Times New Roman", Times, serif;
 }
 
 #map {
@@ -95,8 +96,11 @@ select {
     bottom:0;
     text-align:center;
     width:100%;
-    background-color: green;
-    color: white;
+    background-color: #7D9C9F;
+    color: #333;
+    border-style: solid;
+    border-color: #638291;
+    border-width: 2px 0px 0px 0px;
 }
 
 p {
@@ -131,19 +135,19 @@ p {
 .roundedbottom {
     -webkit-border-bottom-left-radius: 8px;
     -webkit-border-bottom-right-radius: 8px;
-    -moz-border-radius-bottomleft: 10px;
-    -moz-border-radius-bottomright: 10px;
+    -moz-border-radius-bottomleft: 8px;
+    -moz-border-radius-bottomright: 8px;
     border-bottom-left-radius: 8px;
     border-bottom-right-radius: 8px;
 }
 
 .roundedtop {
-    -webkit-border-top-left-radius: 10px;
-    -webkit-border-top-right-radius: 10px;
-    -moz-border-radius-topleft: 10px;
-    -moz-border-radius-topright: 10px;
-    border-top-left-radius: 10px;
-    border-top-right-radius: 10px;
+    -webkit-border-top-left-radius: 8px;
+    -webkit-border-top-right-radius: 8px;
+    -moz-border-radius-topleft: 8px;
+    -moz-border-radius-topright: 8px;
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
 }
 
 /*
